@@ -1,0 +1,3647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>地球研习所 · 交互式地理学习地球仪</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23071019' stroke='%2338d6bb' stroke-width='2'/%3E%3Cellipse cx='16' cy='16' rx='7' ry='14' fill='none' stroke='%2338d6bb' stroke-width='1.4'/%3E%3Cpath d='M3 16h26M5 9h22M5 23h22' stroke='%2338d6bb' stroke-width='1.2' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://miaoda.feishu.cn">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap">
+<script type="importmap">
+{ "imports": {
+  "three": "https://fastly.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://fastly.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}}
+</script>
+<script src="https://fastly.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" defer></script>
+<style>
+/* ============ 设计令牌 ============ */
+:root{
+  --bg:#04070d; --panel:rgba(9,16,26,.86); --panel-solid:#0a121d;
+  --line:rgba(132,172,206,.16); --line-strong:rgba(132,172,205,.32);
+  --text:#e7eff6; --muted:#8ba0b5; --faint:#5d7186;
+  --teal:#38d6bb; --teal-dim:rgba(56,214,187,.14);
+  --amber:#e6b25f; --warm:#ff7a4d; --cold:#53b7e8;
+  --font-display:'Space Grotesk','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans SC',sans-serif;
+  --font-body:'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans SC','Space Grotesk',sans-serif;
+  --dock-h:54px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:var(--font-body);-webkit-font-smoothing:antialiased;font-size:14px}
+button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input{font-family:inherit}
+::selection{background:rgba(56,214,187,.3)}
+#canvasHost{position:fixed;inset:0;z-index:0}
+#canvasHost canvas{display:block;cursor:grab;touch-action:none}
+#canvasHost canvas:active{cursor:grabbing}
+
+/* ============ 加载屏 ============ */
+#loader{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;
+  flex-direction:column;align-items:center;justify-content:center;gap:26px;transition:opacity .7s ease}
+#loader.done{opacity:0;pointer-events:none}
+.loader-ring{width:64px;height:64px;border-radius:50%;border:2px solid rgba(56,214,187,.18);
+  border-top-color:var(--teal);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-title{font-family:var(--font-display);font-size:20px;font-weight:600;letter-spacing:.12em}
+.loader-sub{color:var(--muted);font-size:13px;min-height:18px}
+.loader-bar{width:200px;height:2px;background:rgba(132,172,206,.15);border-radius:2px;overflow:hidden}
+.loader-bar i{display:block;height:100%;width:0;background:var(--teal);transition:width .4s ease}
+
+/* ============ 通用框架 ============ */
+#app{position:fixed;inset:0;z-index:10;pointer-events:none}
+#app .interactive{pointer-events:auto}
+.topbar{position:absolute;top:0;left:0;right:0;height:58px;display:flex;align-items:center;
+  gap:14px;padding:0 16px;
+  background:linear-gradient(to bottom,rgba(4,7,13,.85),rgba(4,7,13,0))}
+.brand{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.brand svg{width:30px;height:30px}
+.brand-txt{display:flex;flex-direction:column;line-height:1.15}
+.brand-txt b{font-family:var(--font-display);font-size:15px;font-weight:700;letter-spacing:.06em}
+.brand-txt small{font-family:var(--font-display);font-size:9.5px;color:var(--teal);letter-spacing:.24em}
+
+/* 搜索 */
+.search{position:relative;flex:1;max-width:340px;margin:0 auto}
+.search input{width:100%;height:38px;border-radius:9px;border:1px solid var(--line);
+  background:var(--panel);padding:0 38px 0 36px;color:var(--text);font-size:13.5px;outline:none;
+  transition:border-color .25s,background .25s}
+.search input::placeholder{color:var(--faint)}
+.search input:focus{border-color:var(--teal);background:var(--panel-solid)}
+.search .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--muted)}
+.search .clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:22px;height:22px;
+  border-radius:6px;display:none;align-items:center;justify-content:center;color:var(--muted)}
+.search .clear:hover{color:var(--text);background:rgba(255,255,255,.06)}
+.search.has-val .clear{display:flex}
+.search-results{position:absolute;top:44px;left:0;right:0;background:var(--panel-solid);
+  border:1px solid var(--line-strong);border-radius:10px;max-height:320px;overflow-y:auto;
+  display:none;box-shadow:0 18px 44px rgba(0,0,0,.5)}
+.search-results.open{display:block}
+.sr-item{display:flex;align-items:center;gap:10px;padding:10px 12px;width:100%;text-align:left;
+  border-bottom:1px solid var(--line)}
+.sr-item:last-child{border-bottom:none}
+.sr-item:hover{background:rgba(56,214,187,.08)}
+.sr-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sr-name{font-size:13.5px;font-weight:500}
+.sr-meta{font-size:11.5px;color:var(--muted);margin-top:2px}
+.sr-kind{margin-left:auto;font-size:10.5px;color:var(--faint);font-family:var(--font-display);
+  border:1px solid var(--line);border-radius:5px;padding:2px 6px;flex-shrink:0}
+
+.top-actions{display:flex;gap:8px;flex-shrink:0}
+.icon-btn{width:38px;height:38px;border-radius:9px;border:1px solid var(--line);background:var(--panel);
+  display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all .25s}
+.icon-btn:hover{color:var(--text);border-color:var(--line-strong)}
+.icon-btn.active{color:var(--teal);border-color:rgba(56,214,187,.5);background:var(--teal-dim)}
+.icon-btn svg{width:17px;height:17px}
+
+/* ============ 图层面板（移动端横向 chip） ============ */
+.layer-panel{position:absolute;left:12px;right:12px;bottom:calc(var(--dock-h) + 14px);
+  display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.layer-panel::-webkit-scrollbar{display:none}
+.layer-btn{flex-shrink:0;display:flex;align-items:center;gap:8px;height:42px;padding:0 14px;
+  border-radius:21px;border:1px solid var(--line);background:var(--panel);color:var(--muted);
+  font-size:13px;transition:all .3s cubic-bezier(.22,1,.36,1)}
+.layer-btn svg{width:16px;height:16px}
+.layer-btn.active{color:#04121a;background:var(--teal);border-color:var(--teal);font-weight:600}
+.layer-btn:not(.active):hover{color:var(--text);border-color:var(--line-strong)}
+
+/* ============ 详情面板（移动端底部抽屉） ============ */
+.detail-panel{position:absolute;left:0;right:0;bottom:0;max-height:62vh;background:var(--panel-solid);
+  border-top:1px solid var(--line-strong);border-radius:18px 18px 0 0;
+  transform:translateY(105%);transition:transform .45s cubic-bezier(.22,1,.36,1);
+  display:flex;flex-direction:column;box-shadow:0 -20px 50px rgba(0,0,0,.45)}
+.detail-panel.open{transform:translateY(0)}
+.detail-grab{width:38px;height:4px;border-radius:2px;background:var(--line-strong);margin:10px auto 4px;flex-shrink:0}
+.detail-close{position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:18px}
+.detail-close:hover{background:rgba(255,255,255,.07);color:var(--text)}
+.detail-body{padding:6px 20px 24px;overflow-y:auto;flex:1}
+
+/* ============ 详情内容元素 ============ */
+.dp-kicker{font-family:var(--font-display);font-size:11px;letter-spacing:.2em;color:var(--teal);
+  text-transform:uppercase;margin-bottom:8px}
+.dp-title{font-family:var(--font-display);font-size:22px;font-weight:700;line-height:1.25}
+.dp-sub{color:var(--muted);font-size:13px;margin-top:5px}
+.dp-desc{font-size:13.5px;line-height:1.75;color:#c3d2df;margin-top:14px}
+.dp-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-top:16px}
+.dp-photo{width:100%;height:168px;object-fit:cover;object-position:center;border-radius:12px;margin-top:14px;display:block;border:1px solid rgba(255,255,255,.08)}
+.dp-cell{border:1px solid var(--line);border-radius:10px;padding:11px 12px;background:rgba(255,255,255,.02)}
+.dp-cell .k{font-size:11.5px;color:var(--faint);margin-bottom:5px}
+.dp-cell .v{font-size:15px;font-weight:600;font-family:var(--font-display);font-variant-numeric:tabular-nums}
+.dp-cell .v small{font-size:11px;color:var(--muted);font-weight:400;margin-left:2px}
+.dp-section-title{font-family:var(--font-display);font-size:12.5px;font-weight:600;color:var(--muted);
+  margin:20px 0 10px;display:flex;align-items:center;gap:8px}
+.dp-section-title::before{content:"";width:14px;height:2px;background:var(--teal);border-radius:1px}
+.dp-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.dp-table th{text-align:left;color:var(--faint);font-weight:500;font-size:11.5px;padding:7px 8px;
+  border-bottom:1px solid var(--line)}
+.dp-table td{padding:9px 8px;border-bottom:1px solid var(--line);color:#c3d2df;vertical-align:top}
+.dp-table td.num{font-family:var(--font-display);font-variant-numeric:tabular-nums;white-space:nowrap}
+.dp-table tr:last-child td{border-bottom:none}
+.tag{display:inline-block;font-size:11px;padding:3px 8px;border-radius:6px;font-family:var(--font-display)}
+.tag.warm{color:var(--warm);background:rgba(255,122,77,.12);border:1px solid rgba(255,122,77,.3)}
+.tag.cold{color:var(--cold);background:rgba(83,183,232,.12);border:1px solid rgba(83,183,232,.3)}
+.tag.teal{color:var(--teal);background:var(--teal-dim);border:1px solid rgba(56,214,187,.3)}
+.dp-note{font-size:11.5px;color:var(--faint);margin-top:14px;line-height:1.6;
+  padding:10px 12px;border-left:2px solid var(--amber);background:rgba(230,178,95,.06);border-radius:0 8px 8px 0}
+.dp-list{display:flex;flex-direction:column;gap:8px}
+.dp-list-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);
+  border-radius:10px;font-size:13px;cursor:pointer;transition:all .2s;text-align:left;width:100%}
+.dp-list-item:hover{border-color:var(--teal);background:var(--teal-dim)}
+.dp-list-item.active{border-color:var(--teal);background:var(--teal-dim);box-shadow:inset 0 0 0 1px rgba(56,214,187,.35)}
+.dp-list-item.active .nm{color:var(--teal);font-weight:600}
+.dp-list-item .sw{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.dp-list-item .thumb{width:46px;height:35px;object-fit:cover;border-radius:7px;flex-shrink:0;
+  border:1px solid rgba(255,255,255,.1)}
+.dp-list-item .nm{font-weight:500;min-width:0}
+.dp-list-item .meta{margin-left:auto;font-size:11px;color:var(--muted);font-family:var(--font-display)}
+.solar-ctl{display:flex;align-items:center;gap:14px;margin-top:16px;padding:12px 14px;
+  border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02);flex-wrap:wrap}
+.solar-play{height:34px;padding:0 16px;border-radius:9px;background:var(--teal-dim);
+  border:1px solid var(--teal);color:var(--teal);font-size:13px;transition:all .25s}
+.solar-play:hover{background:var(--teal);color:#04121a}
+.solar-speed{flex:1;min-width:150px;display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted)}
+.solar-speed input{flex:1;accent-color:var(--teal);height:4px}
+.solar-speed .sv{font-family:var(--font-display);color:var(--text);font-variant-numeric:tabular-nums;min-width:32px;text-align:right}
+.dp-layer-row{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer;
+  transition:all .25s}
+.dp-layer-row:hover{border-color:var(--line-strong)}
+.dp-layer-row.sel{border-color:var(--teal);background:var(--teal-dim)}
+.dp-layer-head{display:flex;align-items:center;gap:10px}
+.dp-layer-sw{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.dp-layer-name{font-family:var(--font-display);font-weight:600;font-size:14.5px}
+.dp-layer-depth{margin-left:auto;font-size:11.5px;color:var(--muted);font-family:var(--font-display)}
+.dp-layer-facts{display:none;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}
+.dp-layer-row.sel .dp-layer-facts{display:grid}
+.dp-layer-facts .dp-cell{padding:9px 10px}
+.dp-layer-facts .v{font-size:13px}
+.dp-layer-row.static{cursor:default}
+.dp-layer-row.static:hover{border-color:var(--line)}
+.dp-wave-row{display:flex;gap:11px;border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-top:10px}
+.dp-wave-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.dp-wave-body{min-width:0}
+.dp-wave-name{font-family:var(--font-display);font-weight:600;font-size:14px}
+.dp-wave-name small{display:block;margin-top:3px;color:var(--muted);font-size:11.5px;font-weight:400}
+.wave-diagram{border:1px solid var(--line);border-radius:12px;padding:10px;background:rgba(255,255,255,.02);margin-top:10px}
+.wave-diagram svg{display:block;width:100%;height:auto}
+.layer-toggle{display:flex;gap:6px;background:rgba(255,255,255,.04);border:1px solid var(--line);
+  border-radius:10px;padding:4px;margin-top:14px}
+.layer-toggle button{flex:1;height:32px;border-radius:7px;font-size:12.5px;color:var(--muted);transition:all .25s}
+.layer-toggle button.active{background:var(--teal);color:#04121a;font-weight:600}
+
+/* ============ 底部控制坞 ============ */
+.bottom-dock{position:absolute;left:12px;bottom:12px;height:var(--dock-h);display:flex;align-items:center;gap:10px}
+.zoom-controls{display:flex;align-items:center;gap:4px;height:44px;padding:0 6px;border-radius:22px;
+  border:1px solid var(--line);background:var(--panel)}
+.zoom-controls button{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;color:var(--muted);font-size:18px;font-family:var(--font-display);transition:all .2s}
+.zoom-controls button:hover{color:var(--text);background:rgba(255,255,255,.07)}
+.zoom-controls .divider{width:1px;height:20px;background:var(--line);margin:0 2px}
+#resetView{font-size:12px;width:auto;padding:0 12px;border-radius:16px}
+
+/* 拆解滑块 */
+.explode-ctl{display:none;align-items:center;gap:12px;height:44px;padding:0 16px;border-radius:22px;
+  border:1px solid var(--line);background:var(--panel)}
+.explode-ctl.show{display:flex}
+.explode-ctl span{font-size:12.5px;color:var(--muted);white-space:nowrap}
+input[type=range]{-webkit-appearance:none;appearance:none;width:150px;height:3px;border-radius:3px;
+  background:linear-gradient(to right,var(--teal) 0%,var(--teal) 0%,rgba(132,172,206,.2) 0%);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;
+  background:var(--teal);border:3px solid #08131c;box-shadow:0 0 0 1px var(--teal);cursor:pointer}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--teal);
+  border:3px solid #08131c;cursor:pointer}
+.explode-val{font-family:var(--font-display);font-size:13px;color:var(--teal);width:34px;text-align:right}
+
+/* ============ 坐标读数 ============ */
+.coord-readout{position:absolute;right:12px;bottom:14px;display:flex;gap:14px;align-items:center;
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 14px;
+  font-family:var(--font-display);font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.coord-readout b{color:var(--text);font-weight:600}
+.coord-readout .sep{width:1px;height:14px;background:var(--line)}
+body.panel-open .coord-readout{opacity:0;transform:translateX(16px);pointer-events:none;
+  transition:opacity .3s ease,transform .3s ease}
+
+/* ============ 悬浮提示 ============ */
+.tooltip{position:fixed;z-index:50;pointer-events:none;background:var(--panel-solid);
+  border:1px solid var(--line-strong);border-radius:8px;padding:7px 11px;font-size:12.5px;
+  opacity:0;transform:translateY(4px);transition:opacity .18s,transform .18s;white-space:nowrap;
+  box-shadow:0 10px 26px rgba(0,0,0,.5)}
+.tooltip.show{opacity:1;transform:translateY(0)}
+.tooltip b{font-weight:600;font-size:13px}
+.tooltip small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+
+/* ============ Toast ============ */
+#toast{position:fixed;top:74px;left:50%;transform:translateX(-50%);z-index:60;display:flex;
+  flex-direction:column;gap:8px;align-items:center}
+.toast-msg{background:var(--panel-solid);border:1px solid var(--line-strong);border-radius:10px;
+  padding:10px 18px;font-size:13px;box-shadow:0 12px 30px rgba(0,0,0,.45);
+  animation:toastIn .35s cubic-bezier(.22,1,.36,1)}
+@keyframes toastIn{from{opacity:0;transform:translateY(-12px)}}
+.toast-msg.out{animation:toastOut .3s ease forwards}
+@keyframes toastOut{to{opacity:0;transform:translateY(-10px)}}
+
+/* ============ 地名标签（CSS2D，LOD 控制） ============ */
+#labelHost{position:fixed;inset:0;z-index:5;pointer-events:none;overflow:hidden}
+#labelHost .geo-label{position:relative;user-select:none;white-space:nowrap;
+  transform:translate(-50%,-50%);will-change:transform}
+#labelHost .geo-label.country{font-family:var(--font-display);font-size:13.5px;font-weight:600;
+  color:rgba(225,236,245,.72);letter-spacing:.08em;
+  text-shadow:0 1px 5px rgba(0,0,0,.95),0 0 3px rgba(0,0,0,.9)}
+#labelHost .geo-label.city{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;
+  color:rgba(198,218,233,.92);text-shadow:0 1px 4px rgba(0,0,0,.95),0 0 2px rgba(0,0,0,.9)}
+#labelHost .geo-label.city i{width:5px;height:5px;border-radius:50%;background:var(--teal);
+  flex-shrink:0;box-shadow:0 0 5px rgba(56,214,187,.8);transition:all .2s}
+#labelHost .geo-label.city.clickable{pointer-events:auto;cursor:pointer;padding:4px 2px}
+#labelHost .geo-label.city.clickable:hover{color:#fff}
+#labelHost .geo-label.city.clickable:hover i{background:var(--amber);transform:scale(1.4);
+  box-shadow:0 0 7px rgba(230,178,95,.9)}
+#labelHost .geo-label.island{font-size:10.5px;color:rgba(190,208,224,.78);letter-spacing:.04em;
+  text-shadow:0 1px 4px rgba(0,0,0,.95),0 0 2px rgba(0,0,0,.9)}
+#labelHost .geo-label.continent{font-family:var(--font-display);font-size:15px;font-weight:700;
+  letter-spacing:.16em;color:rgba(235,244,251,.9);text-shadow:0 1px 6px rgba(0,0,0,.95),0 0 4px rgba(0,0,0,.9)}
+#labelHost .geo-label.ocean{font-family:var(--font-display);font-size:13px;font-weight:500;font-style:italic;
+  letter-spacing:.14em;color:rgba(151,199,226,.82);text-shadow:0 1px 5px rgba(0,0,0,.95),0 0 3px rgba(0,0,0,.9)}
+#labelHost .geo-label.hidden{display:none}
+#labelHost .geo-label.occluded{display:none}
+
+/* ============ 板块名称标签 ============ */
+#labelHost .plate-label{position:relative;transform:translate(-50%,-50%);white-space:nowrap;
+  user-select:none;pointer-events:none;font-family:var(--font-display);font-size:14.5px;font-weight:700;
+  letter-spacing:.14em;color:#eaf4fb;text-shadow:0 1px 5px rgba(0,0,0,.95),0 0 4px rgba(0,0,0,.9);
+  padding:3px 11px;border-radius:9px;background:rgba(8,16,26,.6);border:1px solid rgba(255,255,255,.14)}
+#labelHost .plate-label.hidden{display:none}
+#labelHost .quake-label{position:relative;transform:translate(-50%,-50%);white-space:nowrap;
+  user-select:none;pointer-events:none;font-family:var(--font-display);font-size:13px;font-weight:700;
+  letter-spacing:.08em;color:#fff4f0;text-shadow:0 1px 5px rgba(0,0,0,.95),0 0 4px rgba(0,0,0,.9);
+  padding:4px 10px;border-radius:9px;background:rgba(12,14,18,.68);border:1px solid rgba(255,110,80,.45)}
+#labelHost .quake-label.hidden{display:none}
+
+/* ============ 太阳系天体名称标签 ============ */
+#labelHost .solar-label{position:relative;transform:translate(-50%,-50%);
+  white-space:nowrap;user-select:none;pointer-events:auto;cursor:pointer;
+  font-family:var(--font-display);font-size:12px;font-weight:600;letter-spacing:.05em;
+  color:#e8f2fb;text-shadow:0 1px 4px rgba(0,0,0,.95),0 0 3px rgba(0,0,0,.9);
+  padding:2px 7px;border-radius:7px;background:rgba(10,20,32,.46);
+  border:1px solid rgba(120,170,200,.28);transition:all .2s}
+#labelHost .solar-label:hover{background:var(--teal);color:#04121a;border-color:var(--teal)}
+#labelHost .solar-label.sun{font-size:13.5px;color:#fff3d0;
+  border-color:rgba(255,200,110,.5);background:rgba(40,26,8,.5)}
+#labelHost .solar-label.sun:hover{background:var(--amber);color:#1a0f02;border-color:var(--amber)}
+
+/* 竖屏面板打开时，图层条上移到抽屉上沿，避免被遮挡 */
+@media (max-width:767px) and (orientation:portrait){
+  body.panel-open .layer-panel{bottom:calc(62vh + 12px);transition:bottom .35s ease}
+  body.panel-open .bottom-dock{opacity:0;pointer-events:none;transition:opacity .3s}
+  .topbar{gap:10px;padding:0 10px}
+  .brand-txt{display:none}
+  .brand svg{width:26px;height:26px}
+  .top-actions{gap:6px}
+  .icon-btn{width:33px;height:33px}
+  .icon-btn svg{width:16px;height:16px}
+}
+
+/* ============ 桌面端布局（要求足够高度，避免横屏手机误判） ============ */
+@media (min-width:768px) and (min-height:500px){
+  :root{--dock-h:58px}
+  .topbar{padding:0 24px;height:64px}
+  .layer-panel{left:22px;top:84px;bottom:auto;right:auto;flex-direction:column;gap:9px;
+    width:208px;padding:0;overflow:visible}
+  .layer-btn{width:100%;border-radius:12px;height:48px;padding:0 16px}
+  .layer-btn.active{font-weight:600}
+  .detail-panel{left:auto;right:22px;top:84px;bottom:22px;width:372px;max-height:none;
+    border-radius:14px;border:1px solid var(--line-strong);transform:translateX(calc(100% + 40px));
+    transition:transform .45s cubic-bezier(.22,1,.36,1)}
+  .detail-panel.open{transform:translateX(0)}
+  .detail-grab{display:none}
+  .detail-body{padding:18px 22px 26px}
+  .bottom-dock{left:50%;transform:translateX(-50%);bottom:18px}
+  .coord-readout{right:22px;bottom:20px}
+  #toast{top:82px}
+}
+@media (max-width:420px){
+  .brand-txt small{display:none}
+  .coord-readout{padding:7px 10px;gap:9px}
+  .coord-readout .label{display:none}
+  .search{max-width:none}
+}
+/* ============ 手机横屏（矮高度，右侧抽屉式布局） ============ */
+@media (orientation:landscape) and (max-height:500px){
+  .topbar{height:46px;padding:0 10px;gap:10px}
+  .brand svg{width:24px;height:24px}
+  .brand-txt b{font-size:13px}
+  .brand-txt small{display:none}
+  .search input{height:34px;font-size:12.5px}
+  .icon-btn{width:34px;height:34px}
+  .icon-btn svg{width:15px;height:15px}
+
+  .layer-panel{bottom:calc(var(--dock-h) + 8px);left:10px;right:10px;gap:6px}
+  .layer-btn{height:36px;padding:0 12px;font-size:12px}
+  .layer-btn svg{width:14px;height:14px}
+
+  .detail-panel{left:auto;right:0;top:46px;bottom:0;width:300px;max-height:none;
+    border-radius:14px 0 0 0;border-top:none;
+    transform:translateX(105%);transition:transform .4s cubic-bezier(.22,1,.36,1)}
+  .detail-panel.open{transform:translateX(0)}
+  .detail-grab{display:none}
+  .detail-body{padding:14px 16px 20px}
+  .dp-title{font-size:19px}
+
+  body.panel-open .layer-panel{bottom:calc(var(--dock-h) + 8px);right:312px;left:10px;transition:right .35s}
+  body.panel-open .bottom-dock{opacity:0;pointer-events:none;transition:opacity .3s}
+
+  .bottom-dock{left:10px;bottom:8px;height:40px;gap:8px}
+  .zoom-controls{height:36px}
+  .zoom-controls button{width:28px;height:28px;font-size:16px}
+  #resetView{padding:0 10px;font-size:11px}
+  .coord-readout{right:10px;bottom:10px;padding:6px 10px;font-size:11px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .loader-ring{animation-duration:2s}
+  .detail-panel,.layer-btn,.icon-btn,.search-results{transition-duration:.01ms!important}
+}
+
+/* ============ 地理知识库覆盖层 ============ */
+.kb-overlay{position:fixed;inset:0;z-index:90;background:rgba(4,7,13,.97);
+  display:flex;flex-direction:column;pointer-events:auto;
+  opacity:0;visibility:hidden;transform:translateY(18px);
+  transition:opacity .42s cubic-bezier(.22,1,.36,1),transform .42s cubic-bezier(.22,1,.36,1),visibility 0s linear .42s}
+.kb-overlay.open{opacity:1;visibility:visible;transform:translateY(0);transition-delay:0s}
+.kb-head{display:flex;align-items:center;gap:18px;padding:20px 30px 16px;border-bottom:1px solid var(--line)}
+.kb-title h2{font-family:var(--font-display);font-size:22px;font-weight:600;letter-spacing:.02em}
+.kb-kicker{display:block;font-size:10.5px;letter-spacing:.28em;color:var(--teal);margin-bottom:5px}
+.kb-search{flex:1;max-width:440px;display:flex;align-items:center;gap:9px;
+  background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:0 13px;height:42px}
+.kb-search svg{width:16px;height:16px;color:var(--muted);flex:none}
+.kb-search input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:13.5px;height:100%}
+.kb-search input::placeholder{color:var(--faint)}
+#kbClose{flex:none;margin-left:auto}
+.kb-cats{display:flex;gap:8px;padding:14px 30px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line)}
+.kb-cats::-webkit-scrollbar{display:none}
+.kb-cat{flex:none;display:flex;align-items:center;gap:7px;height:38px;padding:0 16px;border-radius:10px;
+  border:1px solid var(--line);background:var(--panel);color:var(--muted);font-size:13px;
+  transition:all .25s ease;white-space:nowrap}
+.kb-cat svg{width:15px;height:15px}
+.kb-cat:hover{color:var(--text);border-color:var(--line-strong)}
+.kb-cat.active{background:var(--teal-dim);border-color:var(--teal);color:var(--teal)}
+.kb-cat .cnt{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+.kb-cat.active .cnt{color:var(--teal)}
+.kb-content{flex:1;overflow-y:auto;padding:26px 30px 40px}
+.kb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px;max-width:1280px}
+.kb-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;
+  transition:border-color .25s ease,transform .25s ease;cursor:pointer}
+.kb-card:hover{border-color:var(--line-strong);transform:translateY(-2px)}
+.kb-card h3{font-size:15px;font-weight:600;margin-bottom:7px;display:flex;align-items:center;gap:8px}
+.kb-card h3::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--teal);flex:none}
+.kb-card .kb-d{color:var(--muted);font-size:12.8px;line-height:1.65}
+.kb-points{max-height:0;overflow:hidden;transition:max-height .4s cubic-bezier(.22,1,.36,1)}
+.kb-card.open .kb-points{max-height:340px}
+.kb-points ul{list-style:none;margin-top:11px;padding-top:11px;border-top:1px dashed var(--line)}
+.kb-points li{position:relative;padding-left:15px;font-size:12.5px;color:var(--text);line-height:1.5;margin-bottom:7px}
+.kb-points li::before{content:"";position:absolute;left:0;top:7px;width:5px;height:5px;border-radius:50%;background:var(--amber)}
+.kb-empty{color:var(--faint);font-size:14px;padding:60px 0;text-align:center;width:100%}
+.kb-sec-label{grid-column:1/-1;font-family:var(--font-display);font-size:13px;letter-spacing:.14em;color:var(--muted);margin:8px 0 2px}
+@media (max-width:767px){
+  .kb-head{flex-wrap:wrap;gap:12px;padding:16px 16px 13px}
+  .kb-title h2{font-size:18px}
+  .kb-search{order:3;flex-basis:100%;max-width:none;height:40px}
+  #kbClose{margin-left:0}
+  .kb-cats{padding:11px 16px}
+  .kb-content{padding:18px 16px 34px}
+  .kb-grid{grid-template-columns:1fr;gap:11px}
+}
+@media (orientation:landscape) and (max-height:500px){
+  .kb-head{padding:10px 18px 9px;gap:14px}
+  .kb-title h2{font-size:16px}
+  .kb-kicker{margin-bottom:2px}
+  .kb-search{height:36px}
+  .kb-cats{padding:8px 18px}
+  .kb-cat{height:33px}
+  .kb-content{padding:14px 18px 24px}
+  .kb-grid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:11px}
+}
+
+/* ============ 设置弹层 ============ */
+.settings-modal{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;
+  padding:24px;background:rgba(4,7,13,.72);backdrop-filter:blur(6px);
+  opacity:0;visibility:hidden;transition:opacity .35s cubic-bezier(.22,1,.36,1),visibility 0s linear .35s}
+.settings-modal.open{opacity:1;visibility:visible;transition-delay:0s}
+.settings-card{width:100%;max-width:388px;max-height:calc(100vh - 48px);overflow-y:auto;
+  background:var(--panel-solid);border:1px solid var(--line-strong);
+  border-radius:18px;padding:20px 22px;box-shadow:0 24px 60px rgba(0,0,0,.55);
+  transform:translateY(14px) scale(.98);transition:transform .35s cubic-bezier(.22,1,.36,1)}
+.settings-modal.open .settings-card{transform:translateY(0) scale(1)}
+.set-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.set-head h3{font-family:var(--font-display);font-size:17px;font-weight:600}
+.set-head .icon-btn{width:32px;height:32px}
+.set-guide{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:18px}
+.set-guide div{font-size:12.8px;color:var(--muted);line-height:1.9}
+.sg-key{display:inline-block;min-width:64px;color:var(--teal);font-weight:600}
+.set-row{margin-bottom:18px}
+.quality-switch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.quality-opt{height:42px;border-radius:10px;border:1px solid var(--line-strong);
+  background:var(--panel);font-size:13px;color:var(--muted);transition:all .22s}
+.quality-opt.active{border-color:var(--teal);color:var(--teal);background:var(--teal-dim)}
+.quality-note{font-size:11.5px;color:var(--faint);line-height:1.55;margin-top:8px}
+.set-label{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#c3d2df;margin-bottom:10px}
+.set-label b{font-family:var(--font-display);color:var(--teal);font-variant-numeric:tabular-nums;font-weight:600}
+.settings-card input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;
+  background:linear-gradient(to right,var(--teal) 0%,var(--teal) var(--fill,26%),var(--line) var(--fill,26%),var(--line) 100%);
+  outline:none;margin:0}
+.settings-card input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;border-radius:50%;
+  background:#06121a;border:2px solid var(--teal);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+.settings-card input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#06121a;
+  border:2px solid var(--teal);cursor:pointer}
+.set-reset{width:100%;height:42px;border-radius:11px;border:1px solid var(--line-strong);background:var(--panel);
+  color:#c3d2df;font-size:13.5px;cursor:pointer;transition:all .25s}
+.set-reset:hover{border-color:var(--teal);color:var(--teal)}
+</style>
+</head>
+<body>
+<!-- 加载屏 -->
+<div id="loader">
+  <div class="loader-ring"></div>
+  <div class="loader-title">地球研习所</div>
+  <div class="loader-bar"><i id="loaderBar"></i></div>
+  <div class="loader-sub" id="loaderSub">正在初始化三维场景…</div>
+</div>
+
+<div id="canvasHost"></div>
+
+<div id="app">
+  <!-- 顶栏 -->
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="13.5" fill="none" stroke="#38d6bb" stroke-width="2"/>
+      <ellipse cx="16" cy="16" rx="6.5" ry="13.5" fill="none" stroke="#38d6bb" stroke-width="1.3"/>
+      <path d="M3.5 16h25M5.5 9.5h21M5.5 22.5h21" stroke="#38d6bb" stroke-width="1.1" fill="none"/></svg>
+      <div class="brand-txt"><b>地球研习所</b><small>TERRA&nbsp;STUDIO</small></div>
+    </div>
+    <div class="search interactive" id="searchBox">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="searchInput" type="text" placeholder="搜索建筑、洋流、城市…" autocomplete="off">
+      <button class="clear" id="searchClear" aria-label="清空">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+      <div class="search-results" id="searchResults"></div>
+    </div>
+    <div class="top-actions interactive">
+      <button class="icon-btn" id="kbBtn" aria-label="地理知识库" title="地理知识库">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20"/></svg>
+      </button>
+      <button class="icon-btn" id="sunBtn" aria-label="日照与季节" title="日照与季节">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <button class="icon-btn" id="autoRotateBtn" aria-label="自动旋转" title="自动旋转">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+      </button>
+      <button class="icon-btn" id="factsBtn" aria-label="地球概况" title="地球概况">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>
+      </button>
+      <button class="icon-btn" id="settingsBtn" aria-label="设置" title="设置">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- 图层导航 -->
+  <nav class="layer-panel interactive" id="layerPanel">
+    <button class="layer-btn" data-layer="solar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.4"/><ellipse cx="12" cy="12" rx="10" ry="4.2"/><circle cx="19.5" cy="8.6" r="1.1" fill="currentColor" stroke="none"/></svg>
+      太阳系</button>
+    <button class="layer-btn active" data-layer="natural">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9S14.5 18.3 12 21c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg>
+      自然地球</button>
+    <button class="layer-btn" data-layer="climate">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 14h4l2-3 3 5 2-4 2 2h5"/><path d="M4 19h16"/></svg>
+      气候带</button>
+    <button class="layer-btn" data-layer="current">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8c3 0 3 3 6 3s3-3 6-3 3 3 6 3M3 16c3 0 3-3 6-3s3 3 6 3 3-3 6-3"/></svg>
+      洋流</button>
+    <button class="layer-btn" data-layer="landmark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10l5-3v13M12 20V4l5 3v13M19 20v-8l3 2v6M3 20h19"/></svg>
+      特色建筑</button>
+    <button class="layer-btn" data-layer="plate">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3.5 10.5h6l2.5-3 3 3h5.5"/><path d="M12 21c-1.5-3-1.5-6 0-9"/></svg>
+      板块构造</button>
+    <button class="layer-btn" data-layer="quake">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h4l2-6 4 12 3-8 2 4h5"/></svg>
+      地震带</button>
+    <button class="layer-btn" data-layer="layer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5.5"/><circle cx="12" cy="12" r="2"/></svg>
+      圈层拆解</button>
+  </nav>
+
+  <!-- 详情面板 -->
+  <aside class="detail-panel interactive" id="detailPanel">
+    <div class="detail-grab"></div>
+    <button class="detail-close" id="detailClose" aria-label="关闭">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <div class="detail-body" id="detailBody"></div>
+  </aside>
+
+  <!-- 底部控制 -->
+  <div class="bottom-dock interactive">
+    <div class="zoom-controls">
+      <button id="zoomOut" aria-label="缩小">−</button>
+      <button id="resetView" aria-label="复位视角">复位</button>
+      <button id="zoomIn" aria-label="放大">+</button>
+    </div>
+    <div class="explode-ctl" id="explodeCtl">
+      <span>圈层拆解</span>
+      <input type="range" id="explodeSlider" min="0" max="100" value="0" aria-label="拆解程度">
+      <span class="explode-val" id="explodeVal">0%</span>
+    </div>
+  </div>
+
+  <!-- 坐标读数 -->
+  <div class="coord-readout interactive" id="coordReadout">
+    <span class="label">纬度 <b id="latVal">--</b></span><span class="sep"></span>
+    <span class="label">经度 <b id="lonVal">--</b></span>
+  </div>
+
+  <!-- 地理知识库覆盖层 -->
+  <div class="kb-overlay" id="kbOverlay" aria-hidden="true">
+    <div class="kb-head">
+      <div class="kb-title">
+        <span class="kb-kicker">GEO KNOWLEDGE BASE</span>
+        <h2>地理知识库</h2>
+      </div>
+      <div class="kb-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="kbSearch" type="text" placeholder="搜索知识点…" autocomplete="off">
+      </div>
+      <button class="icon-btn" id="kbClose" aria-label="关闭知识库">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="kb-cats" id="kbCats"></div>
+    <div class="kb-content" id="kbContent"></div>
+  </div>
+
+  <!-- 设置弹层 -->
+  <div class="settings-modal interactive" id="settingsModal" aria-hidden="true">
+    <div class="settings-card" role="dialog" aria-modal="true" aria-label="设置">
+      <div class="set-head">
+        <h3>设置</h3>
+        <button class="icon-btn" id="setClose" aria-label="关闭设置">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="set-guide">
+        <div><span class="sg-key">拖动</span>旋转地球</div>
+        <div><span class="sg-key">双指 / 滚轮</span>缩放并旋转</div>
+        <div><span class="sg-key">双击 / + -</span>快速缩放</div>
+        <div><span class="sg-key">点击标记</span>查看详情</div>
+      </div>
+      <div class="set-row">
+        <div class="set-label">画质模式</div>
+        <div class="quality-switch">
+          <button class="quality-opt" type="button" data-quality="balanced">均衡</button>
+          <button class="quality-opt" type="button" data-quality="hd2k">2K 高清</button>
+        </div>
+        <div class="quality-note" id="qualityInfo">2K 模式按实际绘制缓冲控制；手机仍限制像素比，避免掉帧和过热。</div>
+      </div>
+      <div class="set-row">
+        <div class="set-label">滑动灵敏度 <b id="rotVal">0.50</b></div>
+        <input type="range" id="rotSens" min="0.2" max="2" step="0.01" value="0.5" aria-label="滑动灵敏度">
+      </div>
+      <div class="set-row">
+        <div class="set-label">缩放灵敏度 <b id="zoomVal">0.75</b></div>
+        <input type="range" id="zoomSens" min="0.2" max="2" step="0.01" value="0.75" aria-label="缩放灵敏度">
+      </div>
+      <button class="set-reset" id="setReset">恢复默认</button>
+    </div>
+  </div>
+
+  <div class="tooltip" id="tooltip"></div>
+  <div id="toast"></div>
+</div>
+
+<script type="module">
+/* ============================================================
+   地球研习所 · 主程序
+   ============================================================ */
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+/* ============ 纹理资源（已上传的稳定挂载地址） ============ */
+const TEX = {
+  color:'https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/Jo69bwpqAob08hxxnZdcVAEansf',
+  normal:'https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/S4gzbc7QgoO2LDxQ9cDcUZ72nIX',
+  spec:'https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/CsBUbFyRzop6hVx8SG7cqdXhn7f',
+  clouds:'https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/I4NabEohiodUnbxpVXocK8Cynkd',
+  lights:'https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/EIhvbq8WOoaggJxeaCBcWOBGnIh'
+};
+
+/* ============ 地球基础参数 ============ */
+const EARTH_FACTS = [
+  {k:'赤道半径',v:'6378.137',u:'km'},{k:'极半径',v:'6356.752',u:'km'},
+  {k:'平均半径',v:'6371.008',u:'km'},{k:'赤道周长',v:'40075.7',u:'km'},
+  {k:'子午线周长',v:'40008.6',u:'km'},{k:'表面积',v:'5.101 亿',u:'km²'},
+  {k:'海洋占比',v:'70.8',u:'%'},{k:'陆地占比',v:'29.2',u:'%'},
+  {k:'质量',v:'5.972×10²⁴',u:'kg'},{k:'平均密度',v:'5.514',u:'g/cm³'},
+  {k:'表面重力',v:'9.807',u:'m/s²'},{k:'逃逸速度',v:'11.186',u:'km/s'},
+  {k:'恒星日',v:'23时56分4秒',u:''},{k:'回归年',v:'365.256',u:'天'},
+  {k:'黄赤交角',v:'23°26′',u:''},{k:'日地平均距离',v:'1.496 亿',u:'km'}
+];
+
+/* ============ 地理知识库（系统覆盖中学地理核心体系） ============ */
+const GEO_KB = [
+{cat:'地球与地图',icon:'map',items:[
+ {t:'地球的形状与大小',d:'地球是两极稍扁、赤道略鼓的不规则椭球体。',p:['平均半径 6371 km','赤道周长约 4 万 km','表面积约 5.1 亿 km²','海洋 70.8%、陆地 29.2%']},
+ {t:'经线与纬线',d:'经线连接南北两极，指示南北方向，长度都相等；纬线相互平行，指示东西方向，长度由赤道向两极递减。',p:['本初子午线为 0° 经线','赤道为 0° 纬线','纬度圈周长 = 赤道周长 × cos 纬度']},
+ {t:'经度与纬度',d:'经度分东西经各 0–180°，纬度分南北纬各 0–90°。',p:['东西半球分界：20°W 与 160°E','南北半球以赤道为界','高/中/低纬：60°/30° 分界']},
+ {t:'地图三要素',d:'比例尺、方向、图例和注记是地图的基本要素。',p:['一般地图“上北下南、左西右东”','有指向标依指向标定方向','经纬网地图经线指南北']},
+ {t:'比例尺',d:'比例尺 = 图上距离 ÷ 实际距离。',p:['分母越大，比例尺越小','比例尺越小，表示范围越大','范围越大，内容越简略']},
+ {t:'等高线地形图',d:'同线等高、闭合曲线、一般不相交；等高线密集坡陡、稀疏坡缓。',p:['山脊：凸向海拔低处','山谷：凸向海拔高处（易集水）','两山顶之间为鞍部','重合处为陡崖']},
+ {t:'时区与国际日界线',d:'全球分 24 个时区，每时区跨经度 15°，相邻时区相差 1 小时，东加西减。',p:['中时区以 0° 经线为中央经线','国际日界线大致沿 180° 经线','自西向东过日界线日期减一天']}
+]},
+{cat:'地球的运动',icon:'orbit',items:[
+ {t:'地球自转',d:'地球绕地轴自西向东自转，从北极上空看呈逆时针。',p:['恒星日 23时56分4秒（真正周期）','太阳日 24 小时（昼夜周期）','角速度约 15°/小时，极点为零']},
+ {t:'自转的地理意义',d:'自转产生昼夜更替、地方时差异，并使水平运动物体方向偏转。',p:['不同经度地方时不同','北半球向右偏、南半球向左偏','赤道上无地转偏向']},
+ {t:'地球公转',d:'地球绕太阳自西向东公转，轨道近似椭圆。',p:['回归年 365.256 天','近日点约 1 月初','远日点约 7 月初']},
+ {t:'黄赤交角',d:'黄道面与赤道面夹角为 23°26′，地轴倾斜方向在空间保持不变。',p:['是太阳直射点移动的根本原因','地轴北极始终指向北极星附近']},
+ {t:'太阳直射点移动',d:'直射点在南北回归线之间往返移动。',p:['春分（3.21）直射赤道','夏至（6.22）直射北回归线','秋分（9.23）直射赤道','冬至（12.22）直射南回归线']},
+ {t:'昼夜长短变化',d:'同一时刻，昼夜长短随纬度和季节变化。',p:['夏至北半球昼最长、北极圈极昼','冬至北半球昼最短、北极圈极夜','赤道全年昼夜等长（各12小时）']},
+ {t:'四季与五带',d:'昼夜长短和正午太阳高度的季节变化形成四季；按热量划分为五带。',p:['热带：南北回归线之间','温带：回归线与极圈之间','寒带：极圈以内，有极昼极夜']},
+ {t:'太阳对地球的影响',d:'太阳辐射是地球光热和大气、水循环的主要动力；太阳活动会扰动地球。',p:['太阳辐射能由低纬向高纬递减','黑子、耀斑增多时扰动电离层、影响无线电短波通信','磁暴使指南针失灵、两极出现极光']}
+]},
+{cat:'大气与天气',icon:'cloud',items:[
+ {t:'大气的组成',d:'大气由干洁空气、水汽和固体杂质组成。',p:['氮气约 78%、氧气约 21%','二氧化碳是主要温室气体','臭氧吸收紫外线']},
+ {t:'大气的垂直分层',d:'自下而上分为对流层、平流层和高层大气。',p:['对流层：天气现象复杂，每升 100 m 降温约 0.6℃','平流层：臭氧集中，利于高空飞行','高层大气：电离层能反射无线电波']},
+ {t:'大气的受热过程',d:'太阳短波辐射使地面增温，地面长波辐射再使大气增温。',p:['大气对太阳辐射有削弱作用','大气逆辐射对地面起保温作用','晴朗夜晚温差大、多云夜晚温差小']},
+ {t:'热力环流',d:'地面冷热不均引起空气环流，是大气运动最简单的形式。',p:['受热处空气上升、近地面成低压','冷却处空气下沉、近地面成高压','典型：城市热岛、海陆风、山谷风']},
+ {t:'气压带与风带',d:'全球形成相间分布的气压带和三个风带。',p:['赤道低压、副热带高压、副极地低压、极地高压','低纬信风、中纬西风、极地东风','随直射点季节移动']},
+ {t:'季风环流',d:'海陆热力性质差异及气压带风带移动形成季风。',p:['东亚季风：夏季东南风、冬季西北风','南亚季风：夏季西南风、冬季东北风','夏季风带来丰沛降水']},
+ {t:'常见天气系统',d:'锋面、气旋与反气旋控制不同天气。',p:['冷锋：阴天、雨雪、大风、降温','暖锋：连续性降水、升温','气旋（低压）上升，多阴雨，如台风','反气旋（高压）下沉，多晴朗']}
+]},
+{cat:'气候',icon:'climate',items:[
+ {t:'气候的影响因素',d:'气候主要受太阳辐射、大气环流、海陆位置、地形和洋流影响。',p:['纬度决定热量基础','大气环流决定降水格局','暖流增温增湿、寒流降温减湿']},
+ {t:'气温的分布',d:'气温总体由低纬向高纬递减，并受海陆、海拔影响。',p:['海拔每升 100 m 气温约降 0.6℃','同纬度夏季陆地高于海洋','南半球等温线较平直（海洋多）']},
+ {t:'降水的主要类型',d:'按成因分为对流雨、地形雨、锋面雨和台风雨。',p:['对流雨：赤道地区午后常见','地形雨：迎风坡多、背风坡成雨影区','锋面雨：温带地区最常见']},
+ {t:'气候类型的判读',d:'根据气温和降水特征判断气候类型。',p:['“以温定带”：最冷月/最热月判断温度带','“以水定型”：降水季节分配判断类型','详见“气候带”图层的 10 类详解']},
+ {t:'气候与人类活动',d:'气候影响农业、建筑、交通与生活，人类活动也会改变局部气候。',p:['温室气体增多导致全球变暖','城市热岛效应','气候异常引发旱涝灾害']}
+]},
+{cat:'水循环与洋流',icon:'water',items:[
+ {t:'水循环',d:'水在海陆间、海上和陆地内不断循环运动。',p:['环节：蒸发、水汽输送、降水、下渗、径流','地表径流与地下径流最终汇入海洋']},
+ {t:'水循环的意义',d:'水循环维持全球水量平衡并产生多种地理效应。',p:['使陆地淡水不断更新','促进物质迁移与能量交换','不断塑造地表形态']},
+ {t:'河流的补给类型',d:'河流补给来源决定其径流变化特征。',p:['雨水补给：流量随降水变化','季节性积雪融水：形成春汛','冰川融水：夏季流量大','地下水：稳定可靠']},
+ {t:'世界主要河流',d:'大河多发源于高原山地，受地形与气候影响流向与水量。',p:['尼罗河：世界最长，注入地中海','亚马孙河：水量最大、流域最广，注入大西洋','长江：亚洲第一长河，注入东海','密西西比河：北美中部，注入墨西哥湾','刚果河：水量居世界第二']},
+ {t:'世界主要湖泊',d:'湖泊分淡水湖与咸水湖，成因多样。',p:['里海：世界最大湖泊（咸水湖）','贝加尔湖：世界最深、蓄水量最大淡水湖','苏必利尔湖：世界面积最大淡水湖','死海：陆地最低点、盐度极高']},
+ {t:'洋流的成因',d:'按成因分为风海流、密度流和补偿流。',p:['风海流：盛行风吹拂形成，最主要','密度流：盐度温度差异引起','补偿流：分水平与上升补偿']},
+ {t:'洋流分布规律',d:'大洋环流呈有规律的环流系统。',p:['中低纬：北顺南逆的反气旋环流','中高纬：北半球气旋式环流','北印度洋：夏顺冬逆的季风洋流']},
+ {t:'洋流的地理影响',d:'洋流对气候、渔场、航海和污染都有影响。',p:['暖流增温增湿、寒流降温减湿','寒暖流交汇与上升流形成大渔场','加快污染扩散也扩大污染范围']},
+ {t:'海水的温度',d:'海水温度主要取决于太阳辐射，随纬度、深度和季节变化。',p:['水平方向由低纬向高纬递减','垂直方向表层高、1000 m 以下低温且变化小','同纬度暖流区水温偏高']},
+ {t:'海水的盐度',d:'世界大洋平均盐度约 35‰，主要受蒸发、降水、径流和结冰融冰影响。',p:['副热带海域盐度最高（蒸发强）','赤道区降水多、盐度略低','河流入海口盐度低，如波罗的海最低、红海最高']},
+ {t:'海水的密度',d:'海水密度随盐度增大、温度降低而增大。',p:['温度是影响密度的主要因素','高密度海水下沉，形成密度流','极地冷水密度大、下沉并向低纬流动']},
+ {t:'海水运动：波浪与潮汐',d:'波浪多由风力产生；潮汐是月球、太阳引力引起的海水周期性涨落。',p:['白天涨落称潮、夜间称汐','初一、十五前后形成大潮','钱塘江大潮是著名涌潮','海啸多由海底地震诱发']},
+ {t:'海—气相互作用',d:'海洋与大气不断进行水分与热量交换，影响全球气候。',p:['厄尔尼诺：赤道东太平洋异常升温，带来气候异常','拉尼娜：赤道东太平洋异常偏冷，与厄尔尼诺相反','我国冬季寒潮、夏季旱涝与此相关']}
+]},
+{cat:'地貌与地质',icon:'mountain',items:[
+ {t:'三大类岩石',d:'岩石按成因分为岩浆岩、沉积岩和变质岩。',p:['岩浆岩：花岗岩（侵入）、玄武岩（喷出）','沉积岩：层理构造、常含化石，如石灰岩','变质岩：高温高压变质，如大理岩']},
+ {t:'岩石圈物质循环',d:'三类岩石与岩浆之间不断转化。',p:['岩浆冷却凝固形成岩浆岩','外力作用形成沉积岩','变质作用形成变质岩','重熔再生回到岩浆']},
+ {t:'板块构造学说',d:'岩石圈分为六大板块，板块处于不断运动中。',p:['亚欧、非洲、美洲、太平洋、印度洋、南极洲板块','板块内部稳定、交界处活跃','碰撞挤压成山、张裂形成裂谷海洋']},
+ {t:'内力作用',d:'地球内部能量引起地壳运动、岩浆活动和变质作用。',p:['地壳运动分水平运动与垂直运动','形成褶皱、断层、火山、地震','使地表变得高低不平']},
+ {t:'地球内部圈层',d:'根据地震波传播速度，地球内部由外向内分为地壳、地幔和地核。',p:['地幔分上地幔与下地幔，上地幔上部存在软流层','地核分外核与内核，外核为液态熔融金属，内核为固态铁镍','岩石圈包括地壳和上地幔顶部']},
+ {t:'莫霍界面与古登堡界面',d:'两个界面是划分地壳、地幔和地核的重要依据。',p:['莫霍界面：地壳与地幔分界，地震波速度在此加快','古登堡界面：地幔与外核分界，横波在此消失','界面深度随海陆位置略有变化']},
+ {t:'纵波与横波',d:'地震波分为纵波（P波）和横波（S波），传播能力不同。',p:['纵波速度较快，固、液、气三态均可通过','横波速度较慢，只能通过固体','横波不能穿过液态外核，是推断外核为液态的重要证据']},
+ {t:'外力作用',d:'太阳能与重力驱动风化、侵蚀、搬运、沉积和固结成岩。',p:['动力：流水、风、冰川、海浪、重力','总体趋势是削高填低','使地表趋于平坦']},
+ {t:'常见地貌类型',d:'不同外力塑造各具特征的地貌。',p:['喀斯特地貌：溶洞、石林，如桂林','河流地貌：V 形谷、冲积平原、三角洲','风成地貌：沙丘、雅丹、戈壁','冰川地貌：角峰、U 形谷、冰碛湖','海岸地貌：海蚀崖、沙滩']},
+ {t:'五种基本地形',d:'按海拔与地表起伏，陆地地形分为山地、平原、高原、盆地、丘陵。',p:['山地：海拔 >500 m，起伏大、坡陡谷深','平原：海拔 <200 m，平坦广阔','高原：海拔 >500 m，顶面平缓、边缘陡峻','盆地：四周高、中间低','丘陵：海拔 200–500 m，起伏和缓']},
+ {t:'地层与化石',d:'地层是具有时间顺序的层状岩石，沉积岩地层中常含化石。',p:['一般下老上新','化石是确定地质年代的重要依据','如三叶虫、恐龙、始祖鸟化石']},
+ {t:'地质年代表',d:'按宙、代、纪划分地球约 46 亿年历史。',p:['冥古宙、太古宙、元古宙、显生宙','显生宙分古生代、中生代、新生代','古生代海洋无脊椎与鱼类、中生代恐龙、新生代哺乳类与人类']},
+ {t:'地球的演化',d:'地球经历了海陆变迁、生物演化和大气变化。',p:['太古宙出现原始生命（蓝细菌）','古生代蕨类森林、成煤期','中生代裸子植物与恐龙繁盛','新生代被子植物、第四纪出现人类']}
+]},
+{cat:'植被与土壤',icon:'leaf',items:[
+ {t:'主要植被类型',d:'气候决定植被的地带性分布。',p:['森林：热带雨林、常绿阔叶林、落叶阔叶林、针叶林','草原：热带草原、温带草原','荒漠：植被稀疏、根系发达']},
+ {t:'自然带的分布',d:'自然带沿纬度和经度方向呈地带性更替。',p:['纬度地带性：以热量为基础，南北更替','经度地带性：以水分为基础，沿海到内陆','垂直地带性：山地随海拔更替']},
+ {t:'土壤的组成',d:'土壤由矿物质、有机质、水分和空气组成。',p:['矿物质是土壤的“骨骼”','有机质（腐殖质）是肥力标志','理想土壤水分与空气各约占孔隙一半']},
+ {t:'土壤的形成因素',d:'成土受母质、气候、生物、地形和时间影响。',p:['生物是最活跃的因素','气候决定风化速度与类型','人类耕作可培育或破坏土壤']},
+ {t:'典型土壤',d:'不同气候带发育代表性土壤。',p:['黑土：冷湿草原，肥沃','红壤：湿热地区，酸性黏重','水稻土：长期人工耕作形成']}
+]},
+{cat:'人口与城市',icon:'people',items:[
+ {t:'人口增长',d:'人口增长包括自然增长和机械增长。',p:['自然增长率 = 出生率 − 死亡率','多数发达国家低增长甚至负增长','发展中国家增长较快']},
+ {t:'人口分布',d:'世界人口分布极不均衡。',p:['稠密区：东亚、南亚、欧洲西部、北美东部','干旱、湿热、高寒、高纬地区稀疏','影响因素：自然条件、经济、历史']},
+ {t:'人口迁移',d:'人口在地区间迁居改变人口分布。',p:['推力：战乱、贫困、灾害、环境恶化','拉力：就业、教育、医疗、收入','现代国际迁移多由发展中国家流向发达国家']},
+ {t:'人口容量',d:'环境对人口有承载上限。',p:['环境承载力受资源、科技、消费水平制约','合理人口容量小于最大容量','资源是首要制约因素']},
+ {t:'城市空间结构',d:'城市内部功能分区布局。',p:['住宅区、商业区、工业区是主要功能区','商业区多位于市中心与交通干线','工业区趋向城市外缘并沿交通线布局']},
+ {t:'城市化',d:'人口向城市集中、城市范围扩大的过程。',p:['标志：城市人口占总人口比重上升','发达国家城市化水平高、起步早','常见问题：交通拥堵、污染、住房紧张、内涝']}
+]},
+{cat:'产业与交通',icon:'industry',items:[
+ {t:'农业区位因素',d:'农业布局受自然和社会经济因素影响。',p:['自然：气候、地形、土壤、水源','社会经济：市场、交通、政策、科技、劳动力','市场需求最终决定农业类型和规模']},
+ {t:'主要农业地域类型',d:'不同地区形成特色农业生产方式。',p:['水稻种植业：东亚、南亚、东南亚，劳动密集','商品谷物农业：大规模机械化，如美国中部','大牧场放牧业、乳畜业、混合农业、种植园农业']},
+ {t:'工业区位因素',d:'工业选址综合考虑多种区位。',p:['原料、动力、劳动力、市场、交通、土地、政策','原料导向型：制糖、水产加工','市场导向型：家具、饮料、食品']},
+ {t:'工业地域与集聚',d:'工业集聚获得规模效益。',p:['共用基础设施、加强协作、降低运输成本','传统工业区多靠近煤铁资源','新兴工业区趋向环境好、交通便利处']},
+ {t:'服务业与区位',d:'服务业以提供服务产品为主。',p:['生产性服务业：金融、物流、信息','生活性服务业：商贸、餐饮、文旅','区位首选市场、交通与人口密集处']},
+ {t:'交通运输方式',d:'五种主要运输方式各有特点。',p:['铁路：量大、长途、连续性好','公路：灵活、门到门，适合短途','水运：运量大、成本低、速度慢','航空：速度快、运量小、成本高','管道：连续安全，适合流体']},
+ {t:'交通区位与影响',d:'交通线布局受自然和社会经济条件制约。',p:['社会经济需要是决定性因素','科技进步克服地形地质限制','交通枢纽促进城市兴起与区域发展']}
+]},
+{cat:'区域与可持续',icon:'globe',items:[
+ {t:'七大洲与四大洋',d:'全球陆地分七大洲、海洋分四大洋。',p:['七大洲：亚非北南美、南极欧大洋','亚洲面积最大、大洋洲最小','四大洋：太平洋、大西洋、印度洋、北冰洋','太平洋最大、北冰洋最小最浅']},
+ {t:'大洲分界线',d:'各大洲之间有自然或人为界线。',p:['亚欧：乌拉尔山—乌拉尔河—大高加索山—土耳其海峡','亚非：苏伊士运河','南北美洲：巴拿马运河','亚北美：白令海峡','欧非：直布罗陀海峡—地中海','南美南极：德雷克海峡']},
+ {t:'世界地理分区',d:'按地理与人文特征划分为若干区域。',p:['如东亚、东南亚、南亚、中亚、西亚、北非、撒哈拉以南非洲、欧洲西部、北美、拉丁美洲、大洋洲、极地地区']},
+ {t:'东南亚',d:'地处亚洲与大洋洲、太平洋与印度洋的“十字路口”。',p:['中南半岛山河相间、纵列分布','马来群岛多火山地震','热带季风与热带雨林气候','水稻、天然橡胶、油棕、锡矿丰富']},
+ {t:'中东（西亚）',d:'五海三洲之地，世界石油宝库。',p:['石油主要分布在波斯湾及其沿岸','气候干旱、水资源匮乏','居民多阿拉伯人、信奉伊斯兰教','苏伊士运河沟通地中海与红海']},
+ {t:'欧洲西部',d:'发达国家集中，温带海洋性气候广布。',p:['地形以平原为主、海岸线曲折','畜牧业发达、乳畜业突出','旅游业繁荣，莱茵河航运便利']},
+ {t:'撒哈拉以南非洲',d:'黑种人的故乡，高原大陆、热带经济作物为主。',p:['热带草原气候分布最广','矿产：黄金、金刚石、铜、石油出口','人口增长快、生态压力大']},
+ {t:'极地地区',d:'南极与北极是地球最寒冷的两端，科考价值高。',p:['南极：冰雪高原、酷寒干燥烈风，代表动物企鹅','北极：以北冰洋为主，代表动物北极熊','我国南极科考站：长城、中山、昆仑、泰山、秦岭站','极圈内有极昼极夜与极光']},
+ {t:'中国地理概况',d:'中国位于亚欧大陆东部、太平洋西岸。',p:['陆地面积约 960 万 km²，居世界第三','地势西高东低、呈三级阶梯','气候复杂多样、季风气候显著','长江、黄河是两大母亲河']},
+ {t:'主要环境问题',d:'人类活动带来资源与生态环境压力。',p:['全球变暖、臭氧层破坏、酸雨','水土流失、荒漠化、生物多样性减少','大气、水、固体废弃物污染']},
+ {t:'可持续发展',d:'既满足当代需要，又不损害后代发展能力。',p:['三大内涵：生态、经济、社会持续','原则：公平性、持续性、共同性','实践：循环经济、清洁生产、低碳生活']},
+ {t:'流域综合治理',d:'以流域为单元统筹防洪、供水、生态与开发。',p:['上游涵养水源、保持水土','中游调蓄洪水、防治污染','下游疏浚河道、保护湿地','如长江、黄河流域生态保护与高质量发展']},
+ {t:'资源枯竭区与产业转移',d:'资源型城市需转型，产业随区位变化在区域间转移。',p:['资源枯竭型城市发展替代产业、治理环境','产业多由发达地区向欠发达地区转移','转入区增加就业、也须防范污染转移']}
+]},
+{cat:'中国地理',icon:'china',items:[
+ {t:'地势三级阶梯',d:'地势西高东低，自西向东呈三级阶梯状分布，有利于海洋湿润气流深入内陆、大河东流沟通东西。',p:['第一、二级界线：昆仑山—祁连山—横断山','第二、三级界线：大兴安岭—太行山—巫山—雪峰山']},
+ {t:'第一级阶梯',d:'以青藏高原为主体，平均海拔 4000 m 以上，是世界最高的高原，号称“世界屋脊”。',p:['含柴达木盆地','雪山连绵、冰川广布','喜马拉雅山珠穆朗玛峰 8848.86 m 为世界最高峰']},
+ {t:'第二级阶梯',d:'以高原和盆地为主，海拔多在 1000～2000 m。',p:['三大高原：内蒙古、黄土、云贵高原','三大盆地：塔里木、准噶尔、四川盆地','吐鲁番盆地艾丁湖为我国陆地最低点']},
+ {t:'第三级阶梯',d:'以平原和丘陵为主，海拔多在 500 m 以下，东部濒临海洋。',p:['三大平原：东北、华北、长江中下游平原','三大丘陵：辽东、山东、东南丘陵','大陆架宽广、多优良港湾']},
+ {t:'四大高原',d:'青藏高原、内蒙古高原、黄土高原、云贵高原各具特征。',p:['内蒙古高原：最平坦、一望无际','黄土高原：黄土深厚、千沟万壑','云贵高原：地面崎岖、喀斯特地貌、多坝子']},
+ {t:'四大盆地',d:'塔里木、准噶尔、柴达木、四川盆地环境差异明显。',p:['塔里木盆地：最大，内有塔克拉玛干沙漠','柴达木盆地：海拔最高，号称“聚宝盆”','四川盆地：最湿润，紫色盆地、“天府之国”']},
+ {t:'三大平原',d:'东北平原、华北平原、长江中下游平原是主要农耕区。',p:['东北平原：面积最大、黑土肥沃','华北平原：黄淮海冲积、黄土地','长江中下游平原：河网密布、“鱼米之乡”']},
+ {t:'主要山脉走向',d:'山脉构成地形骨架，分隔主要地形区。',p:['东西走向：天山—阴山、昆仑山—秦岭、南岭','东北—西南：大兴安岭—太行山—巫山—雪峰山','南北走向：横断山脉、贺兰山','弧形山脉：喜马拉雅山']},
+ {t:'季风区与非季风区',d:'季风气候显著，雨热同期；分界线大致沿大兴安岭—阴山—贺兰山—巴颜喀拉山—冈底斯山。',p:['夏季盛行东南、西南季风，带来降水','冬季盛行西北、东北季风，寒冷干燥','非季风区深居内陆、降水稀少']},
+ {t:'温度带与干湿区',d:'按活动积温分温度带，按降水量与蒸发量分干湿地区。',p:['温度带：寒温、中温、暖温、亚热带、热带、青藏高原区','湿润区年降水 >800 mm','干旱区年降水 <200 mm']},
+ {t:'长江与黄河',d:'长江是我国第一大河、黄河是第二长河，均发源于青藏高原。',p:['长江 6300 km，注入东海，“黄金水道”、三峡水利枢纽','黄河 5464 km，注入渤海，含沙量最大、下游“地上河”','治理黄河关键在治沙、保持水土']},
+ {t:'人口与行政区划',d:'人口分布极不均衡，行政区划为 23 省、5 自治区、4 直辖市、2 特别行政区。',p:['黑河—腾冲线（胡焕庸线）东南稠密、西北稀疏','我国人口约 14 亿、有 56 个民族','汉族主要分布在东部和中部']},
+ {t:'农业与四大工业基地',d:'农业呈“南稻北麦、东耕西牧”格局，工业集中在东部沿海。',p:['四大工业基地：辽中南、京津唐、沪宁杭、珠三角','商品粮基地如东北平原、成都平原','高新技术产业多依附大中城市']}
+]},
+{cat:'自然灾害与防灾',icon:'disaster',items:[
+ {t:'气象灾害·洪涝',d:'因连续性降水或短时强降水导致江河泛滥、积水。',p:['分布在季风气候区河流中下游','我国东部季风区夏秋季多发','危害农田、城市与交通，诱发疫病']},
+ {t:'气象灾害·干旱',d:'长时间无降水或降水异常偏少造成的空气干燥、土壤缺水。',p:['我国华北春旱、长江伏旱','非洲萨赫勒地区严重','导致人畜饮水困难、蝗灾与火灾']},
+ {t:'气象灾害·台风',d:'热带或副热带洋面形成的强烈热带气旋。',p:['中心附近风力≥12 级','带来狂风、暴雨、风暴潮','我国东南沿海夏秋多发，也能缓解伏旱']},
+ {t:'气象灾害·寒潮',d:'强冷空气迅速入侵造成大范围剧烈降温。',p:['24 小时降温可达 8℃以上','带来严寒、大风、霜冻、雨雪','对农牧业和交通影响大']},
+ {t:'地质灾害·地震',d:'岩层突然破裂、能量快速释放引起的地面震动。',p:['震级表示能量大小、烈度表示破坏程度','多分布在板块交界处','环太平洋与地中海—喜马拉雅地震带']},
+ {t:'地质灾害·火山',d:'岩浆等沿地壳薄弱处喷出地表。',p:['分活火山、死火山、休眠火山','火山灰形成肥沃土壤','环太平洋火山带最集中']},
+ {t:'地质灾害·滑坡与泥石流',d:'滑坡是坡体整体下滑；泥石流是含大量泥沙石块的特殊洪流。',p:['山区地形陡、松散物质多、暴雨诱发','我国西南山区多发','避让原则：向沟谷两侧高处跑']},
+ {t:'防灾减灾',d:'通过监测预警、工程防御和应急救援减轻灾害损失。',p:['建立灾害监测预警体系','修建堤坝、护坡、防护林','制定应急预案、储备救灾物资、开展演练']},
+ {t:'地理信息技术（3S）',d:'遥感、卫星导航与地理信息系统支撑防灾与地理研究。',p:['RS 遥感：远距离获取地表信息，用于灾害监测','GNSS 卫星导航：定位导航，如北斗、GPS','GIS 地理信息系统：分析管理空间数据']}
+]},
+{cat:'资源与环境安全',icon:'shield',items:[
+ {t:'自然资源分类',d:'按属性分为可再生资源与非可再生资源。',p:['可再生：水、生物、气候、土地','非可再生：矿产、能源','合理利用、提高资源利用率']},
+ {t:'能源安全',d:'能源的稳定供应与合理消费关系国家安全。',p:['化石能源：煤、石油、天然气','新能源：太阳能、风能、水能、核能','我国优化能源结构、发展清洁能源']},
+ {t:'耕地与粮食安全',d:'保护耕地是保障粮食安全的基础。',p:['坚守 18 亿亩耕地红线','我国耕地比重小、后备资源不足','保护黑土地、防治土壤退化']},
+ {t:'海洋资源与权益',d:'海洋蕴藏丰富资源，我国是海洋大国。',p:['海洋生物、矿产、化学、空间资源','油气多分布在大陆架','维护领海与专属经济区权益，建设海洋强国']},
+ {t:'资源跨区域调配',d:'资源分布与消费不均，需要跨区域调配。',p:['我国南水北调、西气东输、西电东送','缓解输入区资源短缺','带动沿线经济、改善能源结构']},
+ {t:'生态安全与保护',d:'维护生态系统稳定是可持续发展的底线。',p:['建立自然保护区、生态红线','推进退耕还林还草、天然林保护','治理荒漠化、水土流失与湿地退化']},
+ {t:'全球环境治理',d:'应对全球性环境问题需要国际合作。',p:['应对气候变化《巴黎协定》','保护臭氧层、生物多样性','我国提出碳达峰、碳中和目标']}
+]},
+{cat:'方法与易错',icon:'method',items:[
+ {t:'晨昏线判读',d:'晨昏线是昼夜半球分界线，始终与太阳光线垂直，并随直射点移动。',p:['晨线由夜入昼，昏线由昼入夜','赤道上通常 6 时日出、18 时日落','极昼极夜范围看晨昏线与极圈的关系']},
+ {t:'正午太阳高度计算',d:'正午太阳高度 H = 90° − |当地纬度 − 直射点纬度|。',p:['同半球取纬度差，异半球取纬度和','H 越大，正午影子越短','北回归线以北通常夏至最高、冬至最低']},
+ {t:'日出日落与昼长',d:'同一纬度昼长相等，日出日落时刻可由昼长推算。',p:['日出时间 = 12 − 昼长/2','日落时间 = 12 + 昼长/2','直射北半球时，越往北昼越长']},
+ {t:'等压线与风向',d:'水平气压梯度力由高压指向低压，风还受地转偏向力和摩擦力影响。',p:['高空风近似平行等压线','近地面风斜穿等压线','北半球右偏，南半球左偏']},
+ {t:'锋面气旋',d:'温带气旋中，冷暖锋围绕低压中心旋转并形成带状降水。',p:['北半球冷锋多在西侧、暖锋多在东侧','冷锋后、暖锋前多降水','南半球偏转方向相反']},
+ {t:'逆温及其影响',d:'气温随高度升高而升高，或降温幅度小于正常递减率，称为逆温。',p:['抑制空气对流运动','污染物不易扩散，易形成雾霾','清晨常见，日出后常逐渐消失']},
+ {t:'等高线与工程选址',d:'等高线地形图可用于判断坝址、道路、引水线路和居民点。',p:['坝址宜选峡谷，上游有集水区','公路尽量沿等高线，避开陡坡','引水渠由高到低可自流']},
+ {t:'地理过程题',d:'按时间顺序解释“主导动力—连续变化—最终结果”。',p:['先判断内力或外力作用','再写侵蚀、搬运、沉积等环节','最后说明地貌或环境变化，避免只背结论']},
+ {t:'区位评价题',d:'区位分析要同时覆盖自然条件、社会经济条件和动态变化。',p:['自然：气候、地形、土壤、水源','人文：市场、交通、政策、劳动力、技术','优势与限制条件都要写']},
+ {t:'区域可持续分析',d:'区域发展应从生态、经济、社会三个维度综合判断。',p:['先识别区域优势和核心问题','治理措施要与问题一一对应','兼顾生态保护、产业发展和民生改善']},
+ {t:'高频易混概念',d:'相近概念要按时间尺度、成因和研究对象区分。',p:['天气是短时间状态，气候是长时间平均','地形重海拔起伏，地貌重成因形态','一次地震震级唯一，烈度各地不同']},
+ {t:'图表信息提取',d:'读图表要先建立证据链，再得出结论。',p:['先看图名、图例、坐标和单位','再分析空间分布与时间变化','异常值单独分析，结论须由图中证据支撑']}
+]}
+];
+
+/* ============ 世界特色建筑（30 处，覆盖六大洲） ============ */
+const LANDMARKS = [
+ {name:'胡夫金字塔',city:'吉萨',country:'埃及',lat:29.979,lon:31.134,year:'约公元前2560年',height:138.5,style:'古埃及巨石建筑',desc:'古埃及第四王朝法老胡夫的陵墓，由约230万块石灰岩垒筑，原高146.6米，是古代世界七大奇迹中唯一留存至今者。'},
+ {name:'帕特农神庙',city:'雅典',country:'希腊',lat:37.972,lon:23.726,year:'公元前438年',height:13.7,style:'多立克柱式神庙',desc:'卫城核心建筑，供奉雅典娜女神，46根大理石柱环绕，以精妙的视觉校正（视差补偿）著称，是古典柱式建筑的典范。'},
+ {name:'罗马斗兽场',city:'罗马',country:'意大利',lat:41.890,lon:12.492,year:'公元80年',height:48,style:'古罗马拱券建筑',desc:'可容纳约5万名观众的椭圆形竞技场，四层拱券立面结合多立克、爱奥尼、科林斯三种柱式，是古罗马工程的标志。'},
+ {name:'圣索菲亚大教堂',city:'伊斯坦布尔',country:'土耳其',lat:41.009,lon:28.980,year:'公元537年',height:55,style:'拜占庭穹顶建筑',desc:'其32米直径的巨型穹顶通过帆拱支撑于方形空间之上，首创穹顶承重体系，先后作为教堂、清真寺与博物馆使用。'},
+ {name:'比萨斜塔',city:'比萨',country:'意大利',lat:43.723,lon:10.397,year:'1372年',height:56,style:'罗马式钟楼',desc:'因地基土层松软不均，施工期间即开始倾斜，塔顶中心偏移约3.9米，1990年完成加固纠偏工程。'},
+ {name:'阿尔罕布拉宫',city:'格拉纳达',country:'西班牙',lat:37.177,lon:-3.588,year:'14世纪',height:26,style:'摩尔式伊斯兰宫殿',desc:'纳斯里德王朝宫殿，以蜂窝拱、石膏雕花和庭院水景闻名，桃金娘院与狮子院是伊斯兰园林的巅峰之作。'},
+ {name:'科隆大教堂',city:'科隆',country:'德国',lat:50.941,lon:6.958,year:'1880年',height:157.4,style:'哥特式教堂',desc:'1248年动工，历时632年完工，双尖塔高157米，是世界第三高教堂，飞扶壁与彩色玻璃窗体现哥特建筑精髓。'},
+ {name:'圣瓦西里大教堂',city:'莫斯科',country:'俄罗斯',lat:55.753,lon:37.623,year:'1561年',height:47.5,style:'俄罗斯拜占庭式',desc:'红场上的九座彩色洋葱头穹顶教堂，为纪念喀山战役而建，穹顶造型各异，是俄罗斯建筑的象征。'},
+ {name:'埃菲尔铁塔',city:'巴黎',country:'法国',lat:48.858,lon:2.295,year:'1889年',height:330,style:'钢铁镂空结构',desc:'为世界博览会而建，由12000个铁件与250万颗铆钉构成，初始遭艺术界批评，如今是巴黎的城市标志。'},
+ {name:'圣家堂',city:'巴塞罗那',country:'西班牙',lat:41.404,lon:2.174,year:'1882年动工',height:172.5,style:'高迪新艺术运动',desc:'高迪遗作，18座尖塔与三组立面讲述圣经故事，立柱如树干分叉，是世界上唯一尚未完工就列入世界遗产的建筑。'},
+ {name:'白宫',city:'华盛顿',country:'美国',lat:38.898,lon:-77.037,year:'1800年',height:21,style:'新古典主义',desc:'美国总统官邸与办公地，砂石外墙1814年被英军焚毁后刷白得名，新古典柱廊体现共和制的建筑隐喻。'},
+ {name:'自由女神像',city:'纽约',country:'美国',lat:40.689,lon:-74.045,year:'1886年',height:93,style:'新古典雕塑建筑',desc:'法国赠美纪念独立百年，铜皮锻造于铁骨架之上，高举火炬的女神内部可拾级登顶，是移民时代的象征。'},
+ {name:'帝国大厦',city:'纽约',country:'美国',lat:40.748,lon:-73.986,year:'1931年',height:443.2,style:'装饰艺术摩天楼',desc:'仅用410天建成，雄踞世界最高建筑40年，阶梯收分的Art Deco塔顶与天线成为纽约天际线的核心。'},
+ {name:'金门大桥',city:'旧金山',country:'美国',lat:37.820,lon:-122.478,year:'1937年',height:227,style:'悬索桥/装饰艺术',desc:'主跨1280米，桥塔高227米，国际橘色涂装在海雾中醒目，曾是世界最长悬索桥。'},
+ {name:'基督救世主像',city:'里约热内卢',country:'巴西',lat:-22.952,lon:-43.211,year:'1931年',height:38,style:'装饰艺术雕塑',desc:'立于700米高的科尔科瓦多山巅，双臂展开28米，皂石镶嵌饰面，是世界新七大奇迹之一。'},
+ {name:'马丘比丘',city:'库斯科',country:'秘鲁',lat:-13.163,lon:-72.545,year:'约1450年',height:2430,style:'印加山地石构',desc:'海拔2430米的印加皇家遗址，石墙不用砂浆却严丝合刃，梯田与排水系统展现印加人的山地工程智慧。'},
+ {name:'摩艾石像群',city:'复活节岛',country:'智利',lat:-27.113,lon:-109.350,year:'约1250–1500年',height:4,style:'拉帕努伊巨石像',desc:'近千尊凝灰岩巨型人像，平均高4米、重约12吨，部分头顶红色石帽，如何搬运至今仍是研究热点。'},
+ {name:'泰姬陵',city:'阿格拉',country:'印度',lat:27.175,lon:78.042,year:'1653年',height:73,style:'莫卧儿伊斯兰建筑',desc:'沙贾汗为王后修建的白色大理石陵墓，对称布局、穹顶与四尖塔，镶嵌半宝石花卉，是伊斯兰建筑的瑰宝。'},
+ {name:'吴哥窟',city:'暹粒',country:'柬埔寨',lat:13.412,lon:103.867,year:'约1150年',height:65,style:'高棉寺庙建筑',desc:'世界最大的宗教建筑，回廊浮雕与五座莲花塔象征须弥山，外墙刻有印度教史诗，四周环以护城河。'},
+ {name:'故宫',city:'北京',country:'中国',lat:39.916,lon:116.397,year:'1420年',height:35.05,style:'明清官式木构',desc:'明清两代皇宫，占地72万平方米，沿中轴线排布三大殿，斗拱抬梁与黄琉璃瓦体现中国古代营国制度。'},
+ {name:'八达岭长城',city:'北京',country:'中国',lat:40.356,lon:116.015,year:'明代1505年修缮',height:7.8,style:'军事防御工程',desc:'长城总长逾2.1万千米，依山就势、条石城砖包砌，墙顶可并行五马，敌楼烽燧构成完整防御体系。'},
+ {name:'东方明珠',city:'上海',country:'中国',lat:31.240,lon:121.500,year:'1994年',height:468,style:'现代混凝土塔',desc:'大小11个球体串联于立柱之间，取“大珠小珠落玉盘”之意，建成时为亚洲第一高塔。'},
+ {name:'国家体育场（鸟巢）',city:'北京',country:'中国',lat:39.993,lon:116.396,year:'2008年',height:69.2,style:'钢结构编织建筑',desc:'4.2万吨钢构件交叉编织成鸟巢形态，无固定立柱、空间受力均匀，是2008年奥运会主体育场。'},
+ {name:'东京晴空塔',city:'东京',country:'日本',lat:35.710,lon:139.811,year:'2012年',height:634,style:'现代电波塔',desc:'世界最高自立式电波塔，仿五重塔减震原理设计，634米高度兼顾数字地面波信号覆盖与抗震需求。'},
+ {name:'台北101',city:'台北',country:'中国',lat:25.034,lon:121.565,year:'2005年',height:508,style:'后现代超高层',desc:'竹节造型每八层外挑一节，内挂660吨风阻尼球，曾为世界第一高楼，兼具防风抗震设计。'},
+ {name:'国家石油双子塔',city:'吉隆坡',country:'马来西亚',lat:3.158,lon:101.712,year:'1998年',height:451.9,style:'伊斯兰后现代',desc:'88层双塔以空中桥梁相连，平面取自伊斯兰几何图案，曾是世界最高摩天楼。'},
+ {name:'哈利法塔',city:'迪拜',country:'阿联酋',lat:25.197,lon:55.274,year:'2010年',height:828,style:'新现代主义超高层',desc:'世界第一高楼，Y形三翼平面逐级收分，162层、57部电梯，灵感来自沙漠蜘蛛兰的叠层结构。'},
+ {name:'阿拉伯塔酒店',city:'迪拜',country:'阿联酋',lat:25.141,lon:55.185,year:'1999年',height:321,style:'仿生帆船造型',desc:'建于人工岛之上，玻璃纤维幕墙张成帆船帆形，以280米高的中庭和悬臂直升机坪闻名。'},
+ {name:'哈桑二世清真寺',city:'卡萨布兰卡',country:'摩洛哥',lat:33.608,lon:-7.633,year:'1993年',height:210,style:'现代摩尔式',desc:'210米宣礼塔为世界最高，部分地面为玻璃可俯瞰海水，可容纳10.5万人同时礼拜，融合传统与现代工艺。'},
+ {name:'悉尼歌剧院',city:'悉尼',country:'澳大利亚',lat:-33.857,lon:151.215,year:'1973年',height:65,style:'表现主义壳体建筑',desc:'三组预cast混凝土壳片如风帆扬起，覆盖105万块瑞典瓷砖，2007年列入世界遗产，是大洋洲的建筑标志。'}
+];
+
+/* 特色建筑真实照片（稳定挂载，顺序与 LANDMARKS 一致） */
+const LANDMARK_IMGS = [
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/VznSbC9MCoGqEwxxrYic4Rnbnmg",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/KfRUbbYLNoGffaxqB9tcVK1Dnrh",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/K7a7bzOgjoffZIxui4Rc1H6bnqf",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/BValbdgaKogLi7xzYgic0YSFnHg",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/KtkYb4pkUowm3DxLnLvctb8dn9H",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/MrEfbrhOKoZMaQxSNKLco2JXnRc",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/HcKxb3UMnouNWYxAtWucJ7UAnBc",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/AZkDbQ8R9oU2BhxJVjfcYqzQn5d",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/GXXSb25DUoSMkvxLXYXcIMHSnlb",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/HsQdbG4hyoqIi9xSZXqc2TeknJc",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/CyYbbx2Lpo1WRuxp0Xlc70Fsnxc",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/JGvcbWTWFosDzDxZU3mc3224nRb",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/P121bKTj1oNj6kxcEaocZcRAnge",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/QarrbyPJAoHjQUxmdVacBeLcnXc",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/LJvYb6BMSo9YtHxru8Xci0qqnWg",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/DDAIbsqE1oJexZxkwrKcrIBFnx0",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/ON2YbqmQmoxyd8xS1vBcOwzynfw",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/GFrTbUv1JoXy8Rxwyc3cTR4jnQf",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/SNgibyXR5oQ0Llxy6M6coCS3nih",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/EXtNbPXpTo07eAxUjoEc2cwCnkb",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/QUfMbRdpko3cILxoYfEcXfwNnQc",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/UwWVbsfiHoPdV2xc0xMcTNajn7b",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/H50zbp7a6oaFGCxJOCHcYN0HnYc",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/RZG4bq1TqoqEDrxhpGIcXnuRnCc",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/VD8qbZL2YoprXexidDwc4CaWnLg",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/ABj1bH00poqWRaxHOh6ckau4n8f",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/KFAObiPbxoxBqVxJuipcqMQcnAC",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/E3rSbyHkioXr9nx3rd2cJpXrnEb",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/BfqAbRwreo9VhexgVoec4y4Vnef",
+"https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/CIkdbwWwjo8b5exAbpQcc3UqnJe"
+];
+
+/* ============ 五带划分（中学地理核心） ============ */
+const CLIMATE_BELTS = [
+ {name:'热带',latMin:0,latMax:23.5,color:'#2e9e6f',desc:'南北回归线之间，一年有太阳直射，正午太阳高度终年较大，获得太阳辐射最多。',fact:'最冷月均温多在15℃以上，全年高温'},
+ {name:'北温带',latMin:23.5,latMax:66.5,color:'#5b9bd5',desc:'北回归线与北极圈之间，无太阳直射也无极昼极夜，地面获得热量比热带少。',fact:'冬夏昼夜长短变化明显，四季分明'},
+ {name:'南温带',latMin:23.5,latMax:66.5,color:'#4a86c4',desc:'南回归线与南极圈之间，季节与北半球相反。',fact:'海洋面积广阔，气候较北半球同纬度温和'},
+ {name:'北寒带',latMin:66.5,latMax:90,color:'#9fc4e2',desc:'北极圈以北，有极昼极夜现象，太阳高度终年很小。',fact:'长冬无夏，降水稀少，存在永久冻土'},
+ {name:'南寒带',latMin:66.5,latMax:90,color:'#c9e0ee',desc:'南极圈以南，南极大陆主体，极昼极夜各可持续数月。',fact:'冰原气候，年均温约-25℃，为全球寒极'}
+];
+
+/* ============ 细分气候类型（10 类，按绝对纬度对称） ============ */
+const CLIMATE_TYPES = [
+ {name:'热带雨林气候',latMin:0,latMax:10,color:'#1f7a4d',temp:'26～28℃',rain:'>2000 mm',desc:'终年高温多雨，对流雨旺盛，发育热带雨林，砖红壤广布。'},
+ {name:'热带草原气候',latMin:10,latMax:20,color:'#7ba858',temp:'22～28℃',rain:'700～1000 mm',desc:'受赤道低压与信风带交替控制，干湿季分明，稀树草原景观。'},
+ {name:'热带沙漠气候',latMin:20,latMax:30,color:'#d9b36c',temp:'最冷月>15℃',rain:'<200 mm',desc:'副热带高压控制，昼夜温差大，云量少、日照强，荒漠广布。'},
+ {name:'地中海气候',latMin:30,latMax:40,color:'#c98a5b',temp:'最冷月6～10℃',rain:'300～1000 mm',desc:'南北纬30°–40°大陆西岸，夏季炎热干燥、冬季温和多雨，常绿硬叶林。'},
+ {name:'亚热带季风气候',latMin:25,latMax:35,color:'#5fa05f',temp:'15～22℃',rain:'1000～1500 mm',desc:'大陆东岸，海陆热力差异导致冬夏季风交替，雨热同期。'},
+ {name:'温带季风气候',latMin:35,latMax:50,color:'#6f9f7a',temp:'-5～15℃',rain:'500～800 mm',desc:'冬季寒冷干燥、夏季高温多雨，年较差大，落叶阔叶林。'},
+ {name:'温带海洋性气候',latMin:40,latMax:60,color:'#5b9bd5',temp:'7～13℃',rain:'700～1000 mm',desc:'终年受西风影响，冬温夏凉、降水均匀，多云雾，多汁牧草。'},
+ {name:'温带大陆性气候',latMin:35,latMax:55,color:'#a88a5f',temp:'年较差大',rain:'<400 mm',desc:'深居内陆，海洋水汽难达，草原与荒漠为主，气温年较差居全球之冠。'},
+ {name:'亚寒带针叶林气候',latMin:50,latMax:66.5,color:'#3e6b8f',temp:'-10～5℃',rain:'300～600 mm',desc:'冬季漫长严寒，暖季短促，泰加林横贯大陆，灰化土发育。'},
+ {name:'寒带苔原/冰原气候',latMin:66.5,latMax:90,color:'#cfe0ec',temp:'最热月<10℃',rain:'<250 mm',desc:'苔原带苔藓地衣为主，冰原带终年冰雪覆盖，植被难以生长。'}
+];
+
+/* ============ 洋流（19 条，含路径与实测数据） ============ */
+const OCEAN_CURRENTS = [
+ {name:'北赤道暖流',kind:'warm',path:[[10,-95],[10,-120],[11,-150],[10,170],[9,140],[10,125]],speed:'0.3～0.6 m/s',temp:'24～28℃',desc:'东北信风驱动的自东向西洋流，横贯太平洋，在菲律宾附近北上形成黑潮。'},
+ {name:'黑潮（日本暖流）',kind:'warm',path:[[12,125],[20,128],[28,133],[35,140],[40,148]],speed:'0.5～1.0 m/s',temp:'20～28℃',desc:'因水色深蓝似黑得名，沿日本群岛北上，与亲潮交汇形成北海道渔场。'},
+ {name:'北太平洋暖流',kind:'warm',path:[[40,150],[42,170],[45,-170],[48,-150],[50,-135]],speed:'0.25～0.5 m/s',temp:'8～18℃',desc:'黑潮在中纬度受西风转向东行，至北美分为阿拉斯加暖流与加利福尼亚寒流。'},
+ {name:'加利福尼亚寒流',kind:'cold',path:[[48,-135],[40,-130],[30,-122],[22,-115]],speed:'0.3～0.5 m/s',temp:'10～18℃',desc:'沿北美西岸南下，存在上升补偿流，使旧金山夏季多海雾。'},
+ {name:'阿拉斯加暖流',kind:'warm',path:[[50,-140],[55,-145],[59,-148],[60,-142]],speed:'约0.3 m/s',temp:'5～12℃',desc:'沿阿拉斯加湾西行，对沿岸增温增湿，使高纬度港口冬季不封冻。'},
+ {name:'秘鲁寒流（洪堡寒流）',kind:'cold',path:[[-5,-82],[-15,-78],[-28,-75],[-40,-76],[-48,-78]],speed:'0.3～0.6 m/s',temp:'12～19℃',desc:'强劲上升流把海底营养盐带至表层，形成世界著名渔场；厄尔尼诺发生时减弱。'},
+ {name:'南赤道暖流',kind:'warm',path:[[-5,-90],[-8,-130],[-10,-170],[-8,170],[-12,150]],speed:'0.4～0.6 m/s',temp:'24～27℃',desc:'东南信风驱动，自东向西横贯南太平洋，南分支形成东澳大利亚暖流。'},
+ {name:'东澳大利亚暖流',kind:'warm',path:[[-12,148],[-22,154],[-32,153],[-40,150]],speed:'0.3～0.5 m/s',temp:'18～24℃',desc:'沿澳东岸南下，增温增湿，与西风漂流相接。'},
+ {name:'西风漂流',kind:'cold',path:[[-45,70],[-50,110],[-52,150],[-55,-180],[-55,-120],[-52,-70],[-48,-20],[-45,20]],speed:'0.5～1.0 m/s',temp:'2～8℃',desc:'环绕南极大陆的全球最强寒流，无陆地阻挡，是寒流系统的核心。'},
+ {name:'墨西哥湾暖流',kind:'warm',path:[[24,-82],[28,-80],[33,-76],[38,-68],[42,-55],[46,-40]],speed:'1.0～2.0 m/s',temp:'24～28℃',desc:'世界最强暖流，巨大暖水团穿越北大西洋，对北美东岸与欧洲气候影响深远。'},
+ {name:'北大西洋暖流',kind:'warm',path:[[46,-40],[50,-25],[56,-12],[62,0],[68,12]],speed:'0.3～0.8 m/s',temp:'8～15℃',desc:'湾流的延续，使西欧冬季比同纬度温暖约15℃，摩尔曼斯克港因此终年不冻。'},
+ {name:'加那利寒流',kind:'cold',path:[[40,-12],[32,-14],[24,-18],[16,-20]],speed:'0.3～0.5 m/s',temp:'15～20℃',desc:'沿伊比利亚与非洲西岸南下，含上升流，最终汇入北赤道暖流。'},
+ {name:'拉布拉多寒流',kind:'cold',path:[[60,-55],[55,-52],[48,-50],[43,-48]],speed:'0.3～0.7 m/s',temp:'0～6℃',desc:'自北冰洋携冰山南下，与湾流交汇于纽芬兰形成渔场，海雾多发。'},
+ {name:'巴西暖流',kind:'warm',path:[[-10,-36],[-20,-40],[-30,-46],[-38,-52]],speed:'0.3～0.6 m/s',temp:'20～26℃',desc:'南赤道暖流在南美东岸的分支，沿巴西海岸南下。'},
+ {name:'本格拉寒流',kind:'cold',path:[[-8,12],[-18,13],[-28,14],[-35,18]],speed:'0.3～0.5 m/s',temp:'12～18℃',desc:'沿非洲西南岸北上，上升流带来渔场，沿岸多雾、荒漠直逼海岸。'},
+ {name:'厄加勒斯暖流',kind:'warm',path:[[-10,40],[-20,38],[-30,32],[-36,22]],speed:'0.5～1.0 m/s',temp:'22～27℃',desc:'沿非洲东南岸南下，在厄加勒斯角与西风漂流相遇，浪大流急。'},
+ {name:'西澳大利亚寒流',kind:'cold',path:[[-18,112],[-26,112],[-34,110]],speed:'0.2～0.4 m/s',temp:'15～19℃',desc:'西风漂流的北分支，沿澳西岸北上，势力较弱，促成沿岸荒漠。'},
+ {name:'千岛寒流（亲潮）',kind:'cold',path:[[56,166],[50,160],[45,152],[41,145]],speed:'0.3～0.7 m/s',temp:'2～8℃',desc:'沿堪察加与千岛群岛南下，营养盐丰富，与黑潮交汇造就北海道渔场。'},
+ {name:'南赤道暖流（大西洋）',kind:'warm',path:[[5,-15],[0,-25],[-5,-32],[-8,-30]],speed:'0.3～0.6 m/s',temp:'24～27℃',desc:'南大西洋的南赤道流，在南美东端撞上陆地，分出巴西暖流。'}
+];
+
+/* ============ 六大板块（名称标签锚点为板块中心，教学划分） ============ */
+const TECTONIC_PLATES = [
+ {name:'亚欧板块',color:'#e6b25f',label:[42,85],area:'约 67% 为大陆',
+  desc:'以欧亚大陆为主体，东缘与太平洋板块、南缘与印度洋板块强烈碰撞，是地中海-喜马拉雅造山带与环太平洋火山带的重要组成。'},
+ {name:'非洲板块',color:'#ff9d5c',label:[-2,22],area:'约 2/3 为大陆',
+  desc:'包含非洲大陆与周边洋壳，东部东非大裂谷是正在发育的生长边界，西、南以大洋中脊与相邻板块分离。'},
+ {name:'美洲板块',color:'#7fd0ff',label:[18,-82],area:'含南、北美大陆',
+  desc:'经典六大板块划分中南、北美同属一个板块，西缘以海沟、断层与太平洋板块相接，东缘为大西洋中脊。'},
+ {name:'太平洋板块',color:'#5fe0c8',label:[2,-158],area:'几乎全为大洋地壳',
+  desc:'全球最大的大洋板块，主体为洋壳，四周多为消亡边界，环太平洋“火环”与深海沟环绕其边缘。'},
+ {name:'印度洋板块',color:'#c79bff',label:[-27,76],area:'含印度、澳洲与洋壳',
+  desc:'包含印度半岛、澳大利亚与大片印度洋壳，向北俯冲亚欧板块造就青藏高原与喜马拉雅山脉。'},
+ {name:'南极洲板块',color:'#e8f0f5',label:[-82,10],area:'以南极大陆为中心',
+  desc:'围绕南极大陆，外缘为环南极洋中脊（生长边界），与南美板块之间有南极俯冲带。'}
+];
+/* 板块边界类型：diverge 生长（张裂）、converge 消亡（汇聚）、transform 转换（走滑） */
+const BOUNDARY_TYPE = {
+  diverge:{name:'生长边界',color:'#38d6bb',desc:'板块张裂，岩浆上涌形成新地壳，多见于大洋中脊与裂谷。'},
+  converge:{name:'消亡边界',color:'#ff6b5e',desc:'板块碰撞俯冲，老地壳回入地幔，多海沟、造山带与火山。'},
+  transform:{name:'转换边界',color:'#e6b25f',desc:'板块水平错动，地壳不增不减，多强震，如圣安德烈斯断层。'}
+};
+const PLATE_BOUNDARIES = [
+ {type:'diverge',name:'大西洋中脊',path:[[66,-20],[52,-30],[38,-31],[22,-45],[5,-32],[-10,-14],[-30,-13],[-48,-12],[-58,-3]]},
+ {type:'diverge',name:'东太平洋海隆',path:[[22,-108],[10,-104],[0,-102],[-15,-110],[-35,-113],[-46,-115]]},
+ {type:'diverge',name:'印度洋中脊',path:[[2,60],[-12,52],[-25,62],[-38,72],[-48,88],[-50,105]]},
+ {type:'diverge',name:'东非大裂谷与红海',path:[[29,35],[20,38],[14,40],[4,36],[-6,34],[-13,34]]},
+ {type:'converge',name:'秘鲁-智利海沟',path:[[8,-78],[-5,-81],[-20,-75],[-38,-73],[-52,-72]]},
+ {type:'converge',name:'中美海沟',path:[[20,-106],[15,-98],[10,-86]]},
+ {type:'converge',name:'阿留申-阿拉斯加',path:[[48,-128],[55,-150],[58,-162],[55,-172],[52,176]]},
+ {type:'converge',name:'日本-千岛海沟',path:[[50,160],[43,148],[35,142],[30,138]]},
+ {type:'converge',name:'琉球-菲律宾海沟',path:[[32,135],[23,126],[14,123],[6,126]]},
+ {type:'converge',name:'巽他海沟',path:[[3,96],[-3,102],[-8,110],[-10,118]]},
+ {type:'converge',name:'阿尔卑斯-喜马拉雅',path:[[45,7],[40,18],[36,28],[33,40],[31,55],[29,70],[28,82],[25,95]]},
+ {type:'converge',name:'新几内亚-新西兰',path:[[-3,138],[-8,148],[-25,165],[-40,175],[-48,172]]},
+ {type:'transform',name:'圣安德烈斯断层',path:[[40,-124],[36,-121],[33,-116]]},
+ {type:'transform',name:'北安纳托利亚断层',path:[[40,30],[39,38]]}
+];
+
+/* ============ 主要地震带（paths 支持多段，教学级路径） ============ */
+const SEISMIC_BELTS = [
+ {name:'环太平洋火山地震带',color:'#ff5252',label:[28,-102],share:'约 80% 的浅源地震、几乎全部深源地震',
+  mag:'强震最密集，多 7 级以上',
+  cases:'2011 东日本 9.0 级、1960 智利 9.5 级、2008 汶川（南北带分支）',
+  desc:'环绕太平洋的“火环”，沿板块消亡边界分布，海沟、火山与地震相伴，是全球地震活动最强烈的地带。',
+  paths:[
+   [[-45,-75],[-20,-75],[0,-80],[15,-98],[35,-120],[48,-128],[55,-150],[58,-162]],
+   [[55,-172],[52,176],[50,160],[40,148],[30,138],[20,128]],
+   [[12,125],[6,126],[-5,105],[-8,115],[-3,138],[-20,168],[-40,175],[-48,170]]]},
+ {name:'地中海-喜马拉雅火山地震带',color:'#ff8a3d',label:[35,65],share:'约 15% 的地震',
+  mag:'多浅源、中源强震',
+  cases:'2008 汶川 8.0 级、2015 尼泊尔 8.1 级、1999 土耳其 7.4 级',
+  desc:'又称欧亚地震带，西起地中海经中东、喜马拉雅东达印尼，是亚欧板块与南侧板块碰撞的产物。',
+  paths:[
+   [[40,-8],[42,12],[38,25],[34,38],[32,50],[30,65],[28,80],[25,95]],
+   [[15,98],[5,98],[-5,103],[-9,112]]]},
+ {name:'大洋中脊地震带',color:'#ffd24d',label:[-15,-20],share:'约 5% 的地震',
+  mag:'多为中小震，强度较弱',
+  cases:'冰岛、大西洋中脊沿线地震',
+  desc:'沿全球大洋中脊（生长边界）分布，岩浆在板块张裂处上涌，地震多与海底张裂和火山活动有关。',
+  paths:[
+   [[65,-20],[40,-30],[10,-35],[-15,-14],[-40,-15],[-55,-5]],
+   [[20,-108],[0,-102],[-20,-112],[-40,-114]],
+   [[0,60],[-20,60],[-40,80],[-50,100]]]},
+ {name:'东非裂谷地震带',color:'#ffb24d',label:[0,36],share:'大陆裂谷型，地震较少',
+  mag:'多浅源，伴火山活动',
+  cases:'乞力马扎罗、尼拉贡戈火山活动',
+  desc:'位于东非大裂谷这一陆内生长边界，地壳张裂减薄，火山与地震沿裂谷串珠状分布。',
+  paths:[[[15,40],[5,36],[-10,34]]]}
+];
+
+/* ============ 地球内部圈层（真实半径，单位 km） ============ */
+const EARTH_LAYERS = [
+ {name:'内核',kind:'shell',rInner:0,rOuter:1221,vis:0.16,color:'#f3e6c4',temp:'5400～6000℃',state:'固态',density:'12.6～13.1 g/cm³',composition:'铁约80%，含镍、硅、硫',desc:'压强约360万个大气压，铁镍在极高压下呈固态，与外核共同维持地磁场。'},
+ {name:'外核',kind:'shell',rInner:1221,rOuter:3480,vis:0.38,color:'#e8833a',temp:'4000～5400℃',state:'液态熔融',density:'9.9～12.2 g/cm³',composition:'熔融铁镍金属',desc:'液态金属对流形成“地球发电机”，是地磁场的主要来源，地震横波无法通过。'},
+ {name:'下地幔',kind:'shell',rInner:3480,rOuter:5711,vis:0.56,color:'#b5482f',temp:'1600～2500℃',state:'固态塑性',density:'4.0～5.5 g/cm³',composition:'高压硅酸盐岩（橄榄石、辉石）',desc:'位于古登堡界面至 660 km 深度之间，压力随深度增大，矿物结构更致密。'},
+ {name:'上地幔',kind:'shell',rInner:5711,rOuter:6291,vis:0.72,color:'#c86a3c',temp:'1000～1900℃',state:'固态塑性',density:'3.3～4.0 g/cm³',composition:'橄榄石、辉石与过渡带矿物',desc:'660 km 深度至岩石圈底部，与地壳共同构成岩石圈，内部包含软流层。'},
+ {name:'软流层',kind:'shell',rInner:5961,rOuter:6271,vis:0.84,color:'#e08a55',temp:'1300～1800℃',state:'塑性熔融层',density:'3.2～3.5 g/cm³',composition:'部分熔融的上地幔岩石',desc:'位于上地幔上部，岩石呈塑性状态，是岩浆的主要发源地，也是板块运动的重要动力层。'},
+ {name:'地壳',kind:'shell',rInner:6331,rOuter:6371,vis:1.0,color:'#7d8fa3',temp:'0～900℃',state:'固态',density:'2.7～3.0 g/cm³',composition:'硅铝层（花岗岩质）/硅镁层（玄武岩质）',desc:'大陆地壳厚30～50千米，大洋地壳仅5～10千米；与上地幔顶部共同构成岩石圈。'}
+];
+const EARTH_INTERFACES = [
+ {name:'古登堡界面',radiusKm:3480,vis:0.38,color:'#ffd25c',desc:'地幔与外核的分界面；横波在此消失，纵波速度明显下降。'},
+ {name:'莫霍界面',radiusKm:6331,vis:0.94,color:'#8fd0ff',desc:'地壳与地幔的分界面；纵波和横波穿过该界面后速度明显加快。'}
+];
+const SEISMIC_WAVES = [
+ {name:'纵波（P波）',color:'#53d9a8',state:'固、液、气均可通过',speed:'5.5～13.7 km/s',desc:'速度最快，可穿过地幔、外核与内核，是地震后最先到达的波。'},
+ {name:'横波（S波）',color:'#ff8a5c',state:'只能通过固体',speed:'3.2～7.3 km/s',desc:'速度较慢，以剪切振动为主；到达古登堡界面后无法继续穿过液态外核。'}
+];
+const EARTH_RADIUS_KM = 6371;
+function depthFromRadius(r){ return EARTH_RADIUS_KM - r; }
+function layerDepthText(l){
+  return `地下 ${depthFromRadius(l.rOuter)}–${depthFromRadius(l.rInner)} km`;
+}
+
+/* ============ 国家标签定位点（约 50 个，标签锚定陆地中心） ============ */
+const COUNTRY_LABELS = [
+ {name:'中国',lat:35,lon:103},{name:'蒙古',lat:46,lon:103},{name:'日本',lat:36.5,lon:137},
+ {name:'韩国',lat:36.6,lon:127.8},{name:'印度',lat:21.5,lon:79},{name:'巴基斯坦',lat:29,lon:67},
+ {name:'孟加拉国',lat:24,lon:90},{name:'哈萨克斯坦',lat:48,lon:66},{name:'印度尼西亚',lat:-3,lon:118},
+ {name:'泰国',lat:15,lon:101},{name:'越南',lat:16,lon:106},{name:'菲律宾',lat:12,lon:122},
+ {name:'马来西亚',lat:4,lon:102},{name:'沙特阿拉伯',lat:24,lon:45},{name:'伊朗',lat:32,lon:53},
+ {name:'土耳其',lat:39,lon:35},{name:'俄罗斯',lat:58,lon:55},{name:'德国',lat:51,lon:10},
+ {name:'法国',lat:46.2,lon:2.2},{name:'英国',lat:54,lon:-2.5},{name:'意大利',lat:42.5,lon:12.5},
+ {name:'西班牙',lat:40,lon:-3.5},{name:'乌克兰',lat:49,lon:32},{name:'波兰',lat:52,lon:19},
+ {name:'瑞典',lat:62,lon:16},{name:'挪威',lat:64,lon:12},{name:'芬兰',lat:64,lon:26},
+ {name:'希腊',lat:39,lon:22},{name:'埃及',lat:27,lon:30},{name:'尼日利亚',lat:9,lon:8},
+ {name:'南非',lat:-29,lon:24},{name:'肯尼亚',lat:0.5,lon:38},{name:'埃塞俄比亚',lat:9,lon:40},
+ {name:'刚果（金）',lat:-3,lon:22},{name:'阿尔及利亚',lat:28,lon:3},{name:'摩洛哥',lat:32,lon:-5},
+ {name:'坦桑尼亚',lat:-6,lon:35},{name:'美国',lat:39,lon:-98},{name:'加拿大',lat:58,lon:-106},
+ {name:'墨西哥',lat:23,lon:-102},{name:'巴西',lat:-10,lon:-52},{name:'阿根廷',lat:-35,lon:-64},
+ {name:'秘鲁',lat:-10,lon:-76},{name:'哥伦比亚',lat:4,lon:-73},{name:'智利',lat:-33,lon:-71},
+ {name:'澳大利亚',lat:-25,lon:134},{name:'新西兰',lat:-41,lon:173},
+ /* —— 补充：亚洲主要国家 —— */
+ {name:'朝鲜',lat:39.5,lon:126.5},{name:'缅甸',lat:21,lon:96},{name:'老挝',lat:18,lon:104},
+ {name:'柬埔寨',lat:12,lon:105},{name:'尼泊尔',lat:28.3,lon:84},{name:'斯里兰卡',lat:7.6,lon:80.8},
+ {name:'阿富汗',lat:33.9,lon:67.7},{name:'伊拉克',lat:33.2,lon:43.7},{name:'以色列',lat:31,lon:34.9},
+ {name:'约旦',lat:31.2,lon:36.9},{name:'阿联酋',lat:24,lon:54},{name:'卡塔尔',lat:25.3,lon:51.2},
+ {name:'科威特',lat:29.3,lon:47.6},{name:'也门',lat:15.5,lon:47.5},{name:'阿曼',lat:21.5,lon:56},
+ {name:'格鲁吉亚',lat:42.3,lon:43.4},{name:'阿塞拜疆',lat:40.4,lon:47.6},{name:'亚美尼亚',lat:40.2,lon:45},
+ {name:'乌兹别克斯坦',lat:41.4,lon:64.6},{name:'土库曼斯坦',lat:39,lon:59.6},{name:'吉尔吉斯斯坦',lat:41.5,lon:74.6},
+ {name:'塔吉克斯坦',lat:38.9,lon:71.3},{name:'文莱',lat:4.5,lon:114.7},
+ /* —— 补充：欧洲主要国家 —— */
+ {name:'白俄罗斯',lat:53.7,lon:27.9},{name:'捷克',lat:49.8,lon:15.5},{name:'匈牙利',lat:47.2,lon:19.5},
+ {name:'瑞士',lat:46.8,lon:8.2},{name:'荷兰',lat:52.2,lon:5.5},{name:'比利时',lat:50.6,lon:4.7},
+ {name:'爱尔兰',lat:53.3,lon:-8},{name:'葡萄牙',lat:39.6,lon:-8},{name:'罗马尼亚',lat:45.9,lon:25},
+ {name:'保加利亚',lat:43.7,lon:25.5},{name:'塞尔维亚',lat:44,lon:21},{name:'克罗地亚',lat:45.1,lon:16.4},
+ {name:'斯洛伐克',lat:48.7,lon:19.6},{name:'立陶宛',lat:55.2,lon:23.9},{name:'拉脱维亚',lat:56.9,lon:24.8},
+ {name:'爱沙尼亚',lat:58.6,lon:25},{name:'冰岛',lat:64.9,lon:-18.6},{name:'塞浦路斯',lat:35.1,lon:33.4},
+ {name:'阿尔巴尼亚',lat:41.2,lon:20.2},{name:'波黑',lat:44.2,lon:17.8},
+ /* —— 补充：非洲主要国家 —— */
+ {name:'利比亚',lat:27,lon:17},{name:'突尼斯',lat:34,lon:9.6},{name:'苏丹',lat:15,lon:30},
+ {name:'南苏丹',lat:7.9,lon:30.2},{name:'乌干达',lat:1.4,lon:32.3},{name:'加纳',lat:7.9,lon:-1.2},
+ {name:'科特迪瓦',lat:7.5,lon:-5.5},{name:'喀麦隆',lat:5.7,lon:12.7},{name:'津巴布韦',lat:-19,lon:29.9},
+ {name:'赞比亚',lat:-13.1,lon:27.8},{name:'莫桑比克',lat:-18.7,lon:35.5},{name:'马达加斯加',lat:-19.4,lon:46.7},
+ {name:'塞内加尔',lat:14.5,lon:-14.5},{name:'安哥拉',lat:-12.3,lon:17.5},{name:'博茨瓦纳',lat:-22.3,lon:24.6},
+ {name:'纳米比亚',lat:-22.9,lon:18.5},{name:'马里',lat:17.6,lon:-4},{name:'尼日尔',lat:17.6,lon:8.1},
+ {name:'乍得',lat:15.5,lon:18.7},{name:'索马里',lat:5.2,lon:46.2},{name:'几内亚',lat:10.4,lon:-10.9},
+ {name:'布基纳法索',lat:12.2,lon:-1.6},
+ /* —— 补充：美洲与大洋洲主要国家 —— */
+ {name:'危地马拉',lat:15.6,lon:-90.4},{name:'巴拿马',lat:8.5,lon:-80},{name:'哥斯达黎加',lat:9.7,lon:-84},
+ {name:'古巴',lat:21.5,lon:-79.5},{name:'牙买加',lat:18.1,lon:-77.3},{name:'海地',lat:19,lon:-72.5},
+ {name:'多米尼加',lat:18.7,lon:-70.2},{name:'委内瑞拉',lat:7.1,lon:-66.1},{name:'厄瓜多尔',lat:-1.5,lon:-78.2},
+ {name:'玻利维亚',lat:-16.7,lon:-64.7},{name:'巴拉圭',lat:-23.3,lon:-58.4},{name:'乌拉圭',lat:-32.8,lon:-56},
+ {name:'圭亚那',lat:5,lon:-58.9},{name:'巴布亚新几内亚',lat:-6.3,lon:143.9},{name:'斐济',lat:-17.7,lon:178.1},
+ {name:'所罗门群岛',lat:-9.4,lon:160},{name:'萨摩亚',lat:-13.8,lon:-171.8},{name:'汤加',lat:-21.2,lon:-175.2}
+];
+
+/* ============ 补充气候类型（10 类纬度模型之外的两类常见气候） ============ */
+const EXTRA_CLIMATE = [
+ {name:'热带季风气候',color:'#3f9e6b',temp:'22～28℃',rain:'1500～2000 mm',
+  desc:'主要分布于亚洲南部与东南部，海陆热力差异与气压带风带季节移动共同驱动，雨季降水极集中，旱雨季分明，植被为热带季雨林。'},
+ {name:'高原山地气候',color:'#8a93a6',temp:'随海拔升高而降低',rain:'迎风坡多、背风坡少',
+  desc:'青藏高原、埃塞俄比亚高原、安第斯山脉等高海拔区域，气候垂直分带明显，气温年较差小而日较差大，景观随海拔由森林过渡到草甸与冰雪。'}
+];
+
+/* ============ 世界主要城市（约 70 个，c 为真实气候类型） ============ */
+const CITY_LABELS = [
+ {name:'北京',country:'中国',lat:39.9,lon:116.4,c:'温带季风气候'},
+ {name:'上海',country:'中国',lat:31.2,lon:121.5,c:'亚热带季风气候'},
+ {name:'台北',country:'中国',lat:25.0,lon:121.5,c:'亚热带季风气候'},
+ {name:'香港',country:'中国',lat:22.3,lon:114.2,c:'亚热带季风气候'},
+ {name:'东京',country:'日本',lat:35.7,lon:139.7,c:'亚热带季风气候'},
+ {name:'首尔',country:'韩国',lat:37.5,lon:127.0,c:'温带季风气候'},
+ {name:'平壤',country:'朝鲜',lat:39.0,lon:125.7,c:'温带季风气候'},
+ {name:'曼谷',country:'泰国',lat:13.7,lon:100.5,c:'热带季风气候'},
+ {name:'河内',country:'越南',lat:21.0,lon:105.8,c:'热带季风气候'},
+ {name:'胡志明市',country:'越南',lat:10.8,lon:106.6,c:'热带季风气候'},
+ {name:'新加坡',country:'新加坡',lat:1.35,lon:103.8,c:'热带雨林气候'},
+ {name:'雅加达',country:'印度尼西亚',lat:-6.2,lon:106.8,c:'热带雨林气候'},
+ {name:'马尼拉',country:'菲律宾',lat:14.6,lon:121.0,c:'热带季风气候'},
+ {name:'吉隆坡',country:'马来西亚',lat:3.15,lon:101.7,c:'热带雨林气候'},
+ {name:'暹粒',country:'柬埔寨',lat:13.4,lon:103.9,c:'热带季风气候'},
+ {name:'新德里',country:'印度',lat:28.6,lon:77.2,c:'热带季风气候'},
+ {name:'孟买',country:'印度',lat:19.1,lon:72.9,c:'热带季风气候'},
+ {name:'达卡',country:'孟加拉国',lat:23.8,lon:90.4,c:'热带季风气候'},
+ {name:'卡拉奇',country:'巴基斯坦',lat:24.9,lon:67.0,c:'热带沙漠气候'},
+ {name:'阿拉木图',country:'哈萨克斯坦',lat:43.2,lon:76.9,c:'温带大陆性气候'},
+ {name:'德黑兰',country:'伊朗',lat:35.7,lon:51.4,c:'温带大陆性气候'},
+ {name:'利雅得',country:'沙特阿拉伯',lat:24.7,lon:46.7,c:'热带沙漠气候'},
+ {name:'迪拜',country:'阿联酋',lat:25.2,lon:55.3,c:'热带沙漠气候'},
+ {name:'耶路撒冷',country:'以色列',lat:31.8,lon:35.2,c:'地中海气候'},
+ {name:'伊斯坦布尔',country:'土耳其',lat:41.0,lon:29.0,c:'地中海气候'},
+ {name:'莫斯科',country:'俄罗斯',lat:55.7,lon:37.6,c:'温带大陆性气候'},
+ {name:'伦敦',country:'英国',lat:51.5,lon:-0.1,c:'温带海洋性气候'},
+ {name:'巴黎',country:'法国',lat:48.86,lon:2.35,c:'温带海洋性气候'},
+ {name:'柏林',country:'德国',lat:52.5,lon:13.4,c:'温带大陆性气候'},
+ {name:'罗马',country:'意大利',lat:41.9,lon:12.5,c:'地中海气候'},
+ {name:'马德里',country:'西班牙',lat:40.4,lon:-3.7,c:'地中海气候'},
+ {name:'巴塞罗那',country:'西班牙',lat:41.4,lon:2.17,c:'地中海气候'},
+ {name:'里斯本',country:'葡萄牙',lat:38.7,lon:-9.1,c:'地中海气候'},
+ {name:'雅典',country:'希腊',lat:37.97,lon:23.7,c:'地中海气候'},
+ {name:'阿姆斯特丹',country:'荷兰',lat:52.4,lon:4.9,c:'温带海洋性气候'},
+ {name:'维也纳',country:'奥地利',lat:48.2,lon:16.4,c:'温带大陆性气候'},
+ {name:'布拉格',country:'捷克',lat:50.1,lon:14.4,c:'温带大陆性气候'},
+ {name:'华沙',country:'波兰',lat:52.2,lon:21.0,c:'温带大陆性气候'},
+ {name:'哥本哈根',country:'丹麦',lat:55.7,lon:12.6,c:'温带海洋性气候'},
+ {name:'斯德哥尔摩',country:'瑞典',lat:59.3,lon:18.1,c:'温带大陆性气候'},
+ {name:'奥斯陆',country:'挪威',lat:59.9,lon:10.7,c:'温带大陆性气候'},
+ {name:'赫尔辛基',country:'芬兰',lat:60.2,lon:24.9,c:'温带大陆性气候'},
+ {name:'开罗',country:'埃及',lat:30.0,lon:31.2,c:'热带沙漠气候'},
+ {name:'卡萨布兰卡',country:'摩洛哥',lat:33.6,lon:-7.6,c:'地中海气候'},
+ {name:'突尼斯',country:'突尼斯',lat:36.8,lon:10.2,c:'地中海气候'},
+ {name:'拉各斯',country:'尼日利亚',lat:6.5,lon:3.4,c:'热带草原气候'},
+ {name:'内罗毕',country:'肯尼亚',lat:-1.3,lon:36.8,c:'热带草原气候'},
+ {name:'亚的斯亚贝巴',country:'埃塞俄比亚',lat:9.0,lon:38.7,c:'高原山地气候'},
+ {name:'约翰内斯堡',country:'南非',lat:-26.2,lon:28.0,c:'热带草原气候'},
+ {name:'开普敦',country:'南非',lat:-33.9,lon:18.4,c:'地中海气候'},
+ {name:'金沙萨',country:'刚果（金）',lat:-4.3,lon:15.3,c:'热带雨林气候'},
+ {name:'华盛顿',country:'美国',lat:38.9,lon:-77.0,c:'温带大陆性气候'},
+ {name:'纽约',country:'美国',lat:40.7,lon:-74.0,c:'温带大陆性气候'},
+ {name:'洛杉矶',country:'美国',lat:34.05,lon:-118.2,c:'地中海气候'},
+ {name:'旧金山',country:'美国',lat:37.8,lon:-122.4,c:'地中海气候'},
+ {name:'芝加哥',country:'美国',lat:41.9,lon:-87.6,c:'温带大陆性气候'},
+ {name:'西雅图',country:'美国',lat:47.6,lon:-122.3,c:'温带海洋性气候'},
+ {name:'温哥华',country:'加拿大',lat:49.3,lon:-123.1,c:'温带海洋性气候'},
+ {name:'墨西哥城',country:'墨西哥',lat:19.4,lon:-99.1,c:'热带草原气候'},
+ {name:'圣保罗',country:'巴西',lat:-23.5,lon:-46.6,c:'亚热带季风气候'},
+ {name:'里约热内卢',country:'巴西',lat:-23.0,lon:-43.2,c:'热带草原气候'},
+ {name:'布宜诺斯艾利斯',country:'阿根廷',lat:-34.6,lon:-58.4,c:'亚热带季风气候'},
+ {name:'利马',country:'秘鲁',lat:-12.0,lon:-77.0,c:'热带沙漠气候'},
+ {name:'波哥大',country:'哥伦比亚',lat:4.7,lon:-74.1,c:'高原山地气候'},
+ {name:'圣地亚哥',country:'智利',lat:-33.45,lon:-70.7,c:'地中海气候'},
+ {name:'库斯科',country:'秘鲁',lat:-13.5,lon:-72.0,c:'高原山地气候'},
+ {name:'悉尼',country:'澳大利亚',lat:-33.87,lon:151.2,c:'亚热带季风气候'},
+ {name:'墨尔本',country:'澳大利亚',lat:-37.8,lon:144.9,c:'温带海洋性气候'},
+ {name:'奥克兰',country:'新西兰',lat:-36.85,lon:174.76,c:'温带海洋性气候'},
+ {name:'复活节岛',country:'智利',lat:-27.1,lon:-109.35,c:'热带草原气候'}
+];
+
+/* ============ 主要岛屿与群岛（近距放大后显示，坐标为教学近似值） ============ */
+const ISLAND_LABELS = [
+ /* 东亚 · 东南亚岛屿 */
+ {name:'台湾岛',lat:23.7,lon:121.0},{name:'海南岛',lat:19.2,lon:109.7},{name:'济州岛',lat:33.5,lon:126.5},
+ {name:'北海道',lat:43.4,lon:142.9},{name:'本州岛',lat:36.2,lon:138.2},{name:'九州岛',lat:33.1,lon:130.8},
+ {name:'吕宋岛',lat:16.2,lon:121.1},{name:'棉兰老岛',lat:7.9,lon:125.0},{name:'苏门答腊',lat:0.6,lon:102.3},
+ {name:'爪哇岛',lat:-7.5,lon:110.2},{name:'加里曼丹岛',lat:0.9,lon:113.4},{name:'苏拉威西岛',lat:-2.1,lon:120.3},
+ {name:'新几内亚岛',lat:-5.6,lon:141.0},{name:'马尔代夫',lat:3.2,lon:73.2},{name:'普吉岛',lat:7.9,lon:98.4},
+ {name:'苏禄群岛',lat:6.1,lon:119.8},
+ /* 欧洲岛屿 */
+ {name:'西西里岛',lat:37.6,lon:14.1},{name:'撒丁岛',lat:40.0,lon:9.0},{name:'克里特岛',lat:35.2,lon:24.8},
+ {name:'科西嘉岛',lat:42.2,lon:9.1},
+ /* 大西洋 · 加勒比岛屿 */
+ {name:'波多黎各',lat:18.2,lon:-66.6},{name:'巴哈马群岛',lat:24.3,lon:-76.5},{name:'亚速尔群岛',lat:37.7,lon:-25.5},
+ {name:'加那利群岛',lat:28.1,lon:-15.5},{name:'马德拉群岛',lat:32.7,lon:-16.9},{name:'百慕大群岛',lat:32.3,lon:-64.8},
+ /* 太平洋岛屿 */
+ {name:'夏威夷群岛',lat:20.7,lon:-156.3},{name:'塔希提岛',lat:-17.7,lon:-149.4},{name:'新喀里多尼亚',lat:-21.3,lon:165.6},
+ {name:'塔斯马尼亚岛',lat:-42.2,lon:147.3},{name:'新西兰北岛',lat:-38.6,lon:176.0},{name:'新西兰南岛',lat:-43.6,lon:171.2},
+ {name:'加拉帕戈斯群岛',lat:-0.9,lon:-90.9},{name:'火地岛',lat:-54.5,lon:-67.5},{name:'马克萨斯群岛',lat:-9.6,lon:-139.0},
+ {name:'关岛',lat:13.4,lon:144.8},{name:'塞班岛',lat:15.2,lon:145.8},
+ /* 印度洋岛屿 */
+ {name:'塞舌尔群岛',lat:-4.6,lon:55.5},{name:'毛里求斯岛',lat:-20.2,lon:57.5},{name:'留尼汪岛',lat:-21.1,lon:55.5},
+ {name:'科摩罗群岛',lat:-11.9,lon:43.8},{name:'安达曼群岛',lat:12.0,lon:92.8},
+ /* 北极岛屿 */
+ {name:'格陵兰岛',lat:72.0,lon:-42.0},{name:'斯瓦尔巴群岛',lat:78.2,lon:15.6},{name:'新地岛',lat:75.5,lon:55.0}
+];
+
+/* ============ 七大洲与四大洋名称（远中距显示） ============ */
+const CONTINENT_LABELS = [
+ {name:'亚洲',lat:46,lon:88},{name:'欧洲',lat:53,lon:17},{name:'非洲',lat:3,lon:21},
+ {name:'北美洲',lat:49,lon:-101},{name:'南美洲',lat:-14,lon:-61},{name:'大洋洲',lat:-26,lon:150},
+ {name:'南极洲',lat:-78,lon:0}
+];
+const OCEAN_LABELS = [
+ {name:'太平洋',lat:-5,lon:-160},{name:'大西洋',lat:5,lon:-30},{name:'印度洋',lat:-18,lon:75},
+ {name:'北冰洋',lat:75,lon:20}
+];
+
+/* ============ 全局状态与工具 ============ */
+const RADIUS = 1;
+const DEFAULT_CAMERA = new THREE.Vector3(0, 1.15, 2.56);
+const DEFAULT_DISTANCE = DEFAULT_CAMERA.length();
+const isMobile = window.matchMedia('(max-width:767px)').matches;
+const reducedMotion = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+const DEFAULT_SENS = { r:0.5, z:0.75 };
+let baseRotSpeed=DEFAULT_SENS.r, baseZoomSpeed=DEFAULT_SENS.z;
+const state = { layer:'natural', autoRotate:false, climateMode:'belt', flying:false, hover:null, dayOfYear:80 };
+let qualityMode=(()=>{
+  try{
+    const q=localStorage.getItem('geo_quality');
+    if(q==='balanced'||q==='hd2k')return q;
+  }catch(e){}
+  return isMobile?'balanced':'hd2k';
+})();
+function getQualityPixelRatio(){
+  const dpr=window.devicePixelRatio||1;
+  const cap=qualityMode==='hd2k'?(isMobile?2:2.25):(isMobile?1.5:1.75);
+  if(qualityMode!=='hd2k')return Math.max(1,Math.min(dpr,cap));
+  return Math.max(1,Math.min(cap,2560/window.innerWidth,1600/window.innerHeight));
+}
+function applyRenderQuality(){
+  if(!renderer)return;
+  renderer.setPixelRatio(getQualityPixelRatio());
+  renderer.setSize(window.innerWidth,window.innerHeight);
+  if(labelRenderer)labelRenderer.setSize(window.innerWidth,window.innerHeight);
+  const info=document.getElementById('qualityInfo');
+  if(info){
+    const buf=renderer.getDrawingBufferSize(new THREE.Vector2());
+    info.textContent=`当前绘制缓冲：${Math.round(buf.x)}×${Math.round(buf.y)}；手机端仍有像素比上限。`;
+  }
+}
+
+function latLonToVec(lat, lon, r = RADIUS){
+  const phi = (90 - lat) * Math.PI / 180;
+  const theta = (lon + 180) * Math.PI / 180;
+  return new THREE.Vector3(
+    -r * Math.sin(phi) * Math.cos(theta),
+     r * Math.cos(phi),
+     r * Math.sin(phi) * Math.sin(theta));
+}
+function vecToLatLon(v){
+  const r = v.length();
+  const lat = 90 - Math.acos(THREE.MathUtils.clamp(v.y / r,-1,1)) * 180 / Math.PI;
+  let lon = Math.atan2(v.z, -v.x) * 180 / Math.PI - 180;
+  if(lon < -180) lon += 360;
+  return {lat, lon};
+}
+function fmtDMS(d, isLat){
+  const hemi = isLat ? (d>=0?'N':'S') : (d>=0?'E':'W');
+  const a = Math.abs(d), deg = Math.floor(a);
+  const mF = (a-deg)*60, min = Math.floor(mF), sec = Math.round((mF-min)*60);
+  return `${deg}°${String(min).padStart(2,'0')}′${String(sec).padStart(2,'0')}″${hemi}`;
+}
+
+let renderer, scene, camera, controls;
+let earthGroup, earthMesh, cloudsMesh, atmosphere, stars;
+let landmarkGroup, currentGroup, climateSphere, layerGroup, plateGroup, quakeGroup;
+let plateMeshes=[], quakeMeshes=[], plateLabelObjs=[], quakeLabelObjs=[];
+let sunLight, solarGroup, solarGlow;
+let labelRenderer, countryLabelObjs=[], cityLabelObjs=[], islandLabelObjs=[], featureLabelObjs=[];
+let kbOpen=false, kbActiveCat=0, kbQuery='';
+const clock = new THREE.Clock();
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+
+/* ============ 渲染器与场景 ============ */
+function initRenderer(){
+  renderer = new THREE.WebGLRenderer({antialias:true, stencil:false, powerPreference:'high-performance',
+    precision:'highp'});
+  /* 像素比按画质模式动态计算；2K 模式限制实际缓冲，避免高分屏过度渲染 */
+  renderer.setPixelRatio(getQualityPixelRatio());
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
+  document.getElementById('canvasHost').appendChild(renderer.domElement);
+
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(42, window.innerWidth/window.innerHeight, 0.01, 100);
+  camera.position.copy(DEFAULT_CAMERA);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(0,0,0);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.1;
+  controls.enablePan = false;
+  controls.zoomToCursor = true;
+  controls.rotateSpeed = baseRotSpeed;
+  controls.zoomSpeed = baseZoomSpeed;
+  controls.minDistance = 1.32;
+  controls.maxDistance = 6;
+  controls.minPolarAngle = 0.12;
+  controls.maxPolarAngle = Math.PI - 0.12;
+  controls.autoRotateSpeed = 0.55;
+  controls.mouseButtons = { LEFT:THREE.MOUSE.ROTATE, MIDDLE:THREE.MOUSE.DOLLY, RIGHT:THREE.MOUSE.ROTATE };
+  controls.touches = { ONE:THREE.TOUCH.ROTATE, TWO:THREE.TOUCH.DOLLY_ROTATE };
+  controls.addEventListener('start', ()=>{
+    state.flying = false;
+    if(window.gsap){ gsap.killTweensOf(camera.position); gsap.killTweensOf(controls.target); }
+  });
+}
+
+/* ============ 光照：太阳主光 + 环境光 + 暗部补光 ============ */
+function initLights(){
+  sunLight = new THREE.DirectionalLight(0xfff4e2, 2.6);
+  sunLight.position.set(5, 0, 0);
+  scene.add(sunLight);
+  scene.add(new THREE.AmbientLight(0x55708f, 0.72));
+  const fill = new THREE.DirectionalLight(0x3a5a7c, 0.62);
+  fill.position.set(-4, -1.5, -3);
+  scene.add(fill);
+}
+
+/* ============ 太阳直射点：节气、日期与赤纬 ============ */
+/* 24 节气近似年积日（N）与名称 */
+const SOLAR_TERMS = [
+ {n:6,name:'小寒'},{n:20,name:'大寒'},{n:39,name:'立春'},{n:54,name:'雨水'},
+ {n:65,name:'惊蛰'},{n:80,name:'春分'},{n:95,name:'清明'},{n:110,name:'谷雨'},
+ {n:126,name:'立夏'},{n:141,name:'小满'},{n:157,name:'芒种'},{n:172,name:'夏至'},
+ {n:188,name:'小暑'},{n:204,name:'大暑'},{n:220,name:'立秋'},{n:235,name:'处暑'},
+ {n:251,name:'白露'},{n:266,name:'秋分'},{n:281,name:'寒露'},{n:296,name:'霜降'},
+ {n:311,name:'立冬'},{n:326,name:'小雪'},{n:341,name:'大雪'},{n:356,name:'冬至'}
+];
+const KEY_TERMS = [{label:'春分',n:80},{label:'夏至',n:172},{label:'秋分',n:266},{label:'冬至',n:356}];
+const MONTH_DAYS = [31,28,31,30,31,30,31,31,30,31,30,31];
+
+function dayToMonthDay(n){
+  let rest=n;
+  for(let m=0;m<12;m++){
+    if(rest<=MONTH_DAYS[m]) return {month:m+1,day:rest};
+    rest-=MONTH_DAYS[m];
+  }
+  return {month:12,day:31};
+}
+function currentTerm(n){
+  let best=SOLAR_TERMS[0], minD=999;
+  for(const t of SOLAR_TERMS){
+    const d=Math.min(Math.abs(t.n-n), 365-Math.abs(t.n-n));
+    if(d<minD){minD=d;best=t;}
+  }
+  return best;
+}
+/* 太阳赤纬（度）：δ = 23.44 · sin(2π(N-81)/365) */
+function solarDeclination(n){
+  return 23.44 * Math.sin(2*Math.PI*(n-81)/365);
+}
+/* 给定纬度（度）与赤纬（度），计算昼长（小时） */
+function dayLength(latDeg, decDeg){
+  const phi=latDeg*Math.PI/180, dec=decDeg*Math.PI/180;
+  const cosH = -Math.tan(phi)*Math.tan(dec);
+  if(cosH<=-1) return 24;
+  if(cosH>=1) return 0;
+  return 2*Math.acos(cosH)*180/Math.PI/15;
+}
+function fmtHour(h){
+  const hh=Math.floor(h), mm=Math.round((h-hh)*60);
+  return `${hh}小时${mm?mm+'分':''}`;
+}
+
+/* 直射点地表标记（暖金色，区别于建筑青色） */
+function createSolarMarker(){
+  solarGroup = new THREE.Group();
+  const glowTex = makeGlowTexture();
+  const normal = latLonToVec(0,-90).normalize();
+  solarGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), normal);
+  solarGroup.position.copy(normal);
+
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.006,0.006,0.085,10),
+    new THREE.MeshBasicMaterial({color:0xffc24d, transparent:true, opacity:0.95}));
+  pole.position.y=0.042;
+  const core = new THREE.Mesh(new THREE.SphereGeometry(0.026,24,24),
+    new THREE.MeshBasicMaterial({color:0xffd27a}));
+  core.position.y=0.1;
+  solarGlow = new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,
+    color:0xffb24d, transparent:true, opacity:0.9, depthWrite:false, blending:THREE.AdditiveBlending}));
+  solarGlow.position.y=0.1; solarGlow.scale.set(0.11,0.11,1);
+  solarGroup.add(pole,core,solarGlow);
+  earthGroup.add(solarGroup);
+}
+
+/* 核心：按年积日更新太阳光照方向与直射点位置 */
+function updateSun(n){
+  const dec = solarDeclination(n);
+  const dir = latLonToVec(dec, -90).normalize();
+  sunLight.position.copy(dir).multiplyScalar(5);
+  if(solarGroup){
+    solarGroup.position.copy(dir);
+    solarGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir);
+  }
+  return dec;
+}
+function updateSolarPulse(){
+  if(!solarGlow || !solarGroup.visible) return;
+  const t=clock.elapsedTime;
+  const s=1+Math.sin(t*2.4)*0.12;
+  solarGlow.scale.set(0.11*s,0.11*s,1);
+  solarGlow.material.opacity=0.75+0.2*Math.sin(t*2.4);
+}
+
+/* ============ 地球本体 ============ */
+function initEarth(textures){
+  earthGroup = new THREE.Group();
+  scene.add(earthGroup);
+
+  /* 各向异性过滤 + 高质量多级渐远，斜视与缩放时纹理依然清晰 */
+  const maxAniso = renderer.capabilities.getMaxAnisotropy();
+  ['color','normal','spec','clouds'].forEach(k=>{
+    const tx=textures[k]; if(!tx)return;
+    tx.anisotropy = maxAniso;
+    tx.generateMipmaps = true;
+    tx.minFilter = THREE.LinearMipmapLinearFilter;
+    tx.magFilter = THREE.LinearFilter;
+  });
+
+  /* 球面细分按设备分级：2K 档位下桌面更圆滑，移动端仍控制顶点开销 */
+  const SEG = isMobile ? 128 : 224;
+  earthMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(RADIUS, SEG, SEG),
+    new THREE.MeshPhongMaterial({
+      map:textures.color, normalMap:textures.normal, specularMap:textures.spec,
+      specular:new THREE.Color(0x2a4458), shininess:18, normalScale:new THREE.Vector2(0.62,0.62)
+    }));
+  earthGroup.add(earthMesh);
+
+  cloudsMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(1.014, isMobile?96:160, isMobile?96:160),
+    new THREE.MeshLambertMaterial({map:textures.clouds, transparent:true, opacity:0.62,
+      alphaTest:0.015, depthWrite:false}));
+  earthGroup.add(cloudsMesh);
+
+  /* 大气 Fresnel 光晕 */
+  const atmosMat = new THREE.ShaderMaterial({
+    uniforms:{ glowColor:{value:new THREE.Color(0x3fb8e6)} },
+    vertexShader:`varying vec3 vN; varying vec3 vV;
+      void main(){ vN = normalize(normalMatrix * normal);
+        vV = normalize((modelViewMatrix * vec4(position,1.0)).xyz);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+    fragmentShader:`uniform vec3 glowColor; varying vec3 vN; varying vec3 vV;
+      void main(){ float i = pow(1.0 - abs(dot(vN, -vV)), 2.8);
+        gl_FragColor = vec4(glowColor, 1.0) * i; }`,
+    side:THREE.BackSide, blending:THREE.AdditiveBlending, transparent:true, depthWrite:false
+  });
+  atmosphere = new THREE.Mesh(
+    new THREE.SphereGeometry(1.18, isMobile?96:160, isMobile?96:160), atmosMat);
+  scene.add(atmosphere);
+}
+
+/* ============ 星空背景（克制密度） ============ */
+function initStars(){
+  const N = 1800, pos = new Float32Array(N*3), col = new Float32Array(N*3);
+  for(let i=0;i<N;i++){
+    const v = new THREE.Vector3().randomDirection().multiplyScalar(40 + Math.random()*30);
+    pos.set([v.x,v.y,v.z], i*3);
+    const t = Math.random();
+    const c = new THREE.Color().setRGB(0.55+0.45*t, 0.62+0.38*t, 0.7+0.3*t);
+    col.set([c.r,c.g,c.b], i*3);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  g.setAttribute('color', new THREE.BufferAttribute(col,3));
+  stars = new THREE.Points(g, new THREE.PointsMaterial({size:0.09, vertexColors:true,
+    transparent:true, opacity:0.8, depthWrite:false}));
+  scene.add(stars);
+}
+
+/* ============================================================
+   地名标签：CSS2D 渲染 + LOD（远看国家、近看城市）
+   ============================================================ */
+function initLabelRenderer(){
+  labelRenderer = new CSS2DRenderer();
+  labelRenderer.setSize(window.innerWidth, window.innerHeight);
+  labelRenderer.domElement.id='labelHost';
+  document.body.appendChild(labelRenderer.domElement);
+}
+function createPlaceLabels(){
+  COUNTRY_LABELS.forEach(c=>{
+    const div=document.createElement('div');
+    div.className='geo-label country';
+    div.textContent=c.name;
+    const obj=new CSS2DObject(div);
+    obj.position.copy(latLonToVec(c.lat,c.lon,1.004));
+    earthGroup.add(obj);
+    countryLabelObjs.push({obj,div,normal:obj.position.clone().normalize(),_vis:null});
+  });
+  CITY_LABELS.forEach((c,i)=>{
+    const div=document.createElement('div');
+    div.className='geo-label city clickable';
+    div.innerHTML='<i></i>'+c.name;
+    div.addEventListener('click',ev=>{ev.stopPropagation();onCityClick(i);});
+    const obj=new CSS2DObject(div);
+    obj.position.copy(latLonToVec(c.lat,c.lon,1.006));
+    earthGroup.add(obj);
+    cityLabelObjs.push({obj,div,normal:obj.position.clone().normalize(),_vis:null});
+  });
+  ISLAND_LABELS.forEach(c=>{
+    const div=document.createElement('div');
+    div.className='geo-label island';
+    div.textContent=c.name;
+    const obj=new CSS2DObject(div);
+    obj.position.copy(latLonToVec(c.lat,c.lon,1.005));
+    earthGroup.add(obj);
+    islandLabelObjs.push({obj,div,normal:obj.position.clone().normalize(),_vis:null});
+  });
+  CONTINENT_LABELS.forEach(c=>{
+    const div=document.createElement('div');
+    div.className='geo-label continent';div.textContent=c.name;
+    const obj=new CSS2DObject(div);
+    obj.position.copy(latLonToVec(c.lat,c.lon,1.003));
+    earthGroup.add(obj);
+    featureLabelObjs.push({obj,div,normal:obj.position.clone().normalize(),_vis:null});
+  });
+  OCEAN_LABELS.forEach(c=>{
+    const div=document.createElement('div');
+    div.className='geo-label ocean';div.textContent=c.name;
+    const obj=new CSS2DObject(div);
+    obj.position.copy(latLonToVec(c.lat,c.lon,1.003));
+    earthGroup.add(obj);
+    featureLabelObjs.push({obj,div,normal:obj.position.clone().normalize(),_vis:null});
+  });
+}
+/* 灵敏度随相机距离自适应：拉近后自动降速，避免近距转动/缩放过快 */
+function applySens(){
+  const d=camera.position.length();
+  const t=THREE.MathUtils.clamp((d-1.32)/(DEFAULT_DISTANCE-1.32),0,1);
+  controls.rotateSpeed=baseRotSpeed*(0.55+0.45*t);
+  controls.zoomSpeed=baseZoomSpeed*(0.7+0.3*t);
+}
+/* 每帧根据相机距离与投影位置显隐标签（投影在视口内且朝向相机才显示） */
+const lodProj = new THREE.Vector3();
+function inObjectView(L){
+  L.obj.getWorldPosition(lodProj);
+  lodProj.project(camera);
+  if(lodProj.z>1) return false;
+  if(lodProj.x<-1.05||lodProj.x>1.05||lodProj.y<-1.05||lodProj.y>1.05) return false;
+  return L.normal.dot(camera.position.clone().normalize())>0;
+}
+function updateLabelLOD(){
+  const d=camera.position.length();
+  const inLayer=!earthGroup.visible;
+  const showCountry=d>=2.3, showCity=d<=2.6;
+  countryLabelObjs.forEach(L=>{
+    const vis=!inLayer && showCountry && inObjectView(L);
+    if(L._vis!==vis){L.div.classList.toggle('hidden',!vis);L._vis=vis;}
+  });
+  cityLabelObjs.forEach(L=>{
+    const vis=!inLayer && showCity && inObjectView(L);
+    if(L._vis!==vis){L.div.classList.toggle('hidden',!vis);L._vis=vis;}
+  });
+  islandLabelObjs.forEach(L=>{
+    const vis=!inLayer && showCity && inObjectView(L);
+    if(L._vis!==vis){L.div.classList.toggle('hidden',!vis);L._vis=vis;}
+  });
+  const showFeature=d>=2.7;
+  featureLabelObjs.forEach(L=>{
+    const vis=!inLayer && showFeature && inObjectView(L);
+    if(L._vis!==vis){L.div.classList.toggle('hidden',!vis);L._vis=vis;}
+  });
+  const plateOn=!inLayer && plateGroup && plateGroup.visible;
+  plateLabelObjs.forEach(L=>{
+    const vis=plateOn && inObjectView(L);
+    if(L._vis!==vis){L.div.classList.toggle('hidden',!vis);L._vis=vis;}
+  });
+  const quakeOn=!inLayer && quakeGroup && quakeGroup.visible;
+  quakeLabelObjs.forEach(L=>{
+    const vis=quakeOn && inObjectView(L);
+    if(L._vis!==vis){L.div.classList.toggle('hidden',!vis);L._vis=vis;}
+  });
+}/* 屏幕空间防重叠：可见国家标签矩形相交时，隐藏后出现的一个（在 CSS2D 渲染后调用） */
+function resolveLabelOverlap(){
+  document.querySelectorAll('.geo-label.occluded').forEach(el=>el.classList.remove('occluded'));
+  const placed=[];
+  for(const L of countryLabelObjs){
+    const el=L.div;
+    if(el.classList.contains('hidden'))continue;
+    const r=el.getBoundingClientRect();
+    /* 略微内缩，留出呼吸间距，避免边框相贴 */
+    const a={left:r.left+2,right:r.right-2,top:r.top+2,bottom:r.bottom-2};
+    if(r.width===0)continue;
+    let hit=false;
+    for(const p of placed){
+      if(!(a.right<p.left||a.left>p.right||a.bottom<p.top||a.top>p.bottom)){hit=true;break;}
+    }
+    if(hit)el.classList.add('occluded');else placed.push(a);
+  }
+}
+function findClimate(name){
+  return CLIMATE_TYPES.find(t=>t.name===name) || EXTRA_CLIMATE.find(t=>t.name===name);
+}
+function onCityClick(i){
+  const c=CITY_LABELS[i];
+  flyTo(c.lat,c.lon);
+  renderCityClimate(i);
+  openPanel();
+}
+
+/* ============ 纹理加载与进度 ============ */
+function loadAll(){
+  const loader = new THREE.TextureLoader();
+  loader.setCrossOrigin('anonymous');
+  const keys = ['color','normal','spec','clouds'];
+  let done = 0;
+  const sub = document.getElementById('loaderSub');
+  const bar = document.getElementById('loaderBar');
+  const tex = {};
+  return Promise.all(keys.map(k => new Promise((resolve,reject)=>{
+    loader.load(TEX[k], t=>{
+      tex[k] = t; done++;
+      bar.style.width = (done/keys.length*100) + '%';
+      sub.textContent = `正在加载地理纹理（${done}/${keys.length}）`;
+      resolve();
+    }, undefined, reject);
+  }))).then(()=>tex);
+}
+
+/* ============ 主循环 ============ */
+function animate(){
+  requestAnimationFrame(animate);
+  if(kbOpen) return;
+  const dt = clock.getDelta();
+  if(!reducedMotion) cloudsMesh.rotation.y += dt * 0.008;
+  if(stars) stars.rotation.y += dt * 0.0015;
+  applySens();
+  controls.update();
+  updateSolarOrbits(dt);
+  updateCurrentFlow(dt);
+  updateMarkers(dt);
+  updateLayerWaves(dt);
+  updateSolarPulse();
+  updateLabelLOD();
+  updateCoordReadout();
+  renderer.render(scene, camera);
+  if(labelRenderer){ labelRenderer.render(scene, camera); resolveLabelOverlap(); }
+}
+
+window.addEventListener('resize', ()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  applyRenderQuality();
+});
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden) clock.stop(); else clock.start();
+});
+
+/* ============================================================
+   图层一：气候带（Canvas 程序化纹理 + 纬线）
+   ============================================================ */
+function buildClimateTexture(){
+  const cv = document.createElement('canvas');
+  cv.width = 2048; cv.height = 1024;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  const latToY = lat => (90 - lat) / 180 * H;
+  ctx.clearRect(0,0,W,H);
+  ctx.globalAlpha = 0.6;
+
+  if(state.climateMode === 'belt'){
+    CLIMATE_BELTS.forEach(b=>{
+      ctx.fillStyle = b.color;
+      const yHigh = latToY(b.latMax), yLow = latToY(b.latMin);
+      /* 北半球 */
+      ctx.fillRect(0, yHigh, W, yLow-yHigh);
+      /* 南半球镜像 */
+      ctx.fillRect(0, H-yLow, W, yLow-yHigh);
+    });
+  } else {
+    CLIMATE_TYPES.forEach(t=>{
+      ctx.fillStyle = t.color;
+      [1,-1].forEach(sgn=>{
+        const yA = latToY(t.latMax*sgn), yB = latToY(t.latMin*sgn);
+        ctx.fillRect(0, Math.min(yA,yB), W, Math.abs(yA-yB));
+      });
+    });
+  }
+  /* 关键纬线亮线：赤道、回归线、极圈 */
+  ctx.globalAlpha = 0.95;
+  [ {lat:0,c:'#ffffff'},{lat:23.5,c:'#e6b25f'},{lat:-23.5,c:'#e6b25f'},
+    {lat:66.5,c:'#9fd4ff'},{lat:-66.5,c:'#9fd4ff'} ].forEach(l=>{
+    ctx.fillStyle = l.c;
+    const y = latToY(l.lat);
+    ctx.fillRect(0, y-1.5, W, 3);
+  });
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+let climateGroup = null;
+function createClimateLayer(){
+  climateGroup = new THREE.Group();
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(1.003, 72, 72),
+    new THREE.MeshLambertMaterial({map:buildClimateTexture(), transparent:true, depthWrite:false}));
+  climateGroup.add(mesh);
+  /* 三维纬线环 */
+  [ {lat:0,c:0xffffff},{lat:23.5,c:0xe6b25f},{lat:-23.5,c:0xe6b25f},
+    {lat:66.5,c:0x9fd4ff},{lat:-66.5,c:0x9fd4ff} ].forEach(l=>{
+    const pts = [];
+    for(let lon=-180;lon<=180;lon+=3) pts.push(latLonToVec(l.lat,lon,1.006));
+    const line = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts),
+      new THREE.LineBasicMaterial({color:l.c, transparent:true, opacity:0.75}));
+    climateGroup.add(line);
+  });
+  earthGroup.add(climateGroup);
+  climateGroup.visible = false;
+}
+function rebuildClimate(){
+  if(!climateGroup) return;
+  const m = climateGroup.children[0];
+  m.material.map.dispose();
+  m.material.map = buildClimateTexture();
+  m.material.needsUpdate = true;
+}
+
+/* ============================================================
+   图层二：洋流（流动 Tube + 箭头 + 拾取）
+   ============================================================ */
+const currentMeshes = [];
+const currentMaterials = [];
+function currentShader(color){
+  return new THREE.ShaderMaterial({
+    uniforms:{ uColor:{value:new THREE.Color(color)}, uTime:{value:0} },
+    vertexShader:`varying vec2 vUv;
+      void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+    fragmentShader:`uniform vec3 uColor; uniform float uTime; varying vec2 vUv;
+      void main(){
+        float d = fract(vUv.x*5.0 - uTime*0.65);
+        float pulse = smoothstep(0.0,0.18,d) * (1.0 - smoothstep(0.32,0.5,d));
+        float edge = 0.55 + 0.45*sin(vUv.y*3.14159);
+        gl_FragColor = vec4(uColor, (0.18 + pulse*0.82) * edge);
+      }`,
+    transparent:true, blending:THREE.AdditiveBlending, depthWrite:false
+  });
+}
+function createCurrentLayer(){
+  currentGroup = new THREE.Group();
+  OCEAN_CURRENTS.forEach((c,idx)=>{
+    const pts = c.path.map(p=>latLonToVec(p[0],p[1],1.008));
+    const curve = new THREE.CatmullRomCurve3(pts);
+    const color = c.kind==='warm' ? 0xff7a4d : 0x53b7e8;
+    const mat = currentShader(color);
+    currentMaterials.push(mat);
+    const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 120, 0.0048, 8, false), mat);
+    tube.userData = {type:'current', idx};
+    currentGroup.add(tube);
+    currentMeshes.push(tube);
+    /* 末端箭头 */
+    const end = curve.getPointAt(1), tan = curve.getTangentAt(1);
+    const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.016,0.045,12),
+      new THREE.MeshBasicMaterial({color, transparent:true, opacity:0.9}));
+    arrow.position.copy(end);
+    arrow.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), tan);
+    arrow.userData = {type:'current', idx};
+    currentGroup.add(arrow);
+    currentMeshes.push(arrow);
+  });
+  earthGroup.add(currentGroup);
+  currentGroup.visible = false;
+}
+function updateCurrentFlow(dt){
+  if(currentGroup && currentGroup.visible){
+    currentMaterials.forEach(m=>m.uniforms.uTime.value += dt);
+  }
+}
+
+/* ============================================================
+   图层：板块构造与地震带（球面路径 Tube）
+   ============================================================ */
+/* 按日期变更线把路径拆成连续段，避免跨 ±180 经线画出穿球的线 */
+function splitByDateline(path){
+  const segs=[[]];
+  for(let i=0;i<path.length;i++){
+    if(i>0 && Math.abs(path[i][1]-path[i-1][1])>180) segs.push([]);
+    segs[segs.length-1].push(path[i]);
+  }
+  return segs.filter(s=>s.length>=2);
+}
+/* 球面路径 → 一组 Tube mesh（自动处理日期线） */
+function makeSurfaceTubes(path,color,surfR,tubeR,userData,segments=100){
+  const out=[];
+  for(const seg of splitByDateline(path)){
+    const pts=seg.map(p=>latLonToVec(p[0],p[1],surfR));
+    if(pts.length===2) pts.splice(1,0,pts[0].clone().add(pts[1]).multiplyScalar(.5).normalize().multiplyScalar(surfR));
+    const curve=new THREE.CatmullRomCurve3(pts);
+    const mat=new THREE.MeshBasicMaterial({color,transparent:true,opacity:.95});
+    const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,segments,tubeR,8,false),mat);
+    mesh.userData=userData;
+    out.push(mesh);
+  }
+  return out;
+}
+function createPlateLayer(){
+  plateGroup=new THREE.Group();
+  PLATE_BOUNDARIES.forEach((b,idx)=>{
+    const color=BOUNDARY_TYPE[b.type].color;
+    makeSurfaceTubes(b.path,color,1.011,0.0058,{type:'plateBoundary',idx})
+      .forEach(t=>{plateGroup.add(t);plateMeshes.push(t);});
+  });
+  TECTONIC_PLATES.forEach((p,idx)=>{
+    const div=document.createElement('div');
+    div.className='plate-label';div.textContent=p.name;
+    const obj=new CSS2DObject(div);
+    obj.position.copy(latLonToVec(p.label[0],p.label[1],1.016));
+    plateGroup.add(obj);
+    plateLabelObjs.push({obj,div,normal:obj.position.clone().normalize(),_vis:null});
+  });
+  earthGroup.add(plateGroup);
+  plateGroup.visible=false;
+  plateLabelObjs.forEach(L=>L.obj.visible=false);
+}
+function createQuakeLayer(){
+  quakeGroup=new THREE.Group();
+  SEISMIC_BELTS.forEach((belt,idx)=>{
+    belt.paths.forEach(path=>{
+      const glow=makeSurfaceTubes(path,belt.color,1.012,0.013,{type:'seismicBelt',idx},110);
+      glow.forEach(t=>{t.material.opacity=.2;t.material.blending=THREE.AdditiveBlending;
+        quakeGroup.add(t);quakeMeshes.push(t);});
+      const core=makeSurfaceTubes(path,belt.color,1.015,0.0052,{type:'seismicBelt',idx},110);
+      core.forEach(t=>{quakeGroup.add(t);quakeMeshes.push(t);});
+    });
+  });
+  SEISMIC_BELTS.forEach(belt=>{
+    const div=document.createElement('div');
+    div.className='quake-label';div.textContent=belt.name;
+    div.style.borderColor=belt.color;
+    const obj=new CSS2DObject(div);
+    obj.position.copy(latLonToVec(belt.label[0],belt.label[1],1.022));
+    quakeGroup.add(obj);
+    quakeLabelObjs.push({obj,div,normal:obj.position.clone().normalize(),_vis:null});
+  });
+  earthGroup.add(quakeGroup);
+  quakeGroup.visible=false;
+  quakeLabelObjs.forEach(L=>L.obj.visible=false);
+}
+
+/* ============================================================
+   图层三：特色建筑标记（光柱 + 菱形 + 脉冲环）
+   ============================================================ */
+const markerMeshes = [];
+const markerData = [];
+let selectedMarker = -1, hoveredMarker = -1;
+function makeGlowTexture(){
+  const cv = document.createElement('canvas'); cv.width=128; cv.height=128;
+  const c = cv.getContext('2d');
+  const grad = c.createRadialGradient(64,64,0,64,64,64);
+  grad.addColorStop(0,'rgba(255,255,255,1)');
+  grad.addColorStop(0.3,'rgba(255,255,255,0.55)');
+  grad.addColorStop(1,'rgba(255,255,255,0)');
+  c.fillStyle=grad; c.fillRect(0,0,128,128);
+  return new THREE.CanvasTexture(cv);
+}
+function createLandmarkLayer(){
+  landmarkGroup = new THREE.Group();
+  const glowTex = makeGlowTexture();
+  LANDMARKS.forEach((lm,idx)=>{
+    const normal = latLonToVec(lm.lat, lm.lon, 1).normalize();
+    const g = new THREE.Group();
+    g.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), normal);
+    g.position.copy(normal);
+
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.0045,0.0045,0.06,8),
+      new THREE.MeshBasicMaterial({color:0x38d6bb, transparent:true, opacity:0.9}));
+    pole.position.y = 0.03;
+    const dia = new THREE.Mesh(new THREE.OctahedronGeometry(0.018),
+      new THREE.MeshPhongMaterial({color:0x38d6bb, emissive:0x145047, shininess:70}));
+    dia.position.y = 0.072;
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.022,0.027,32),
+      new THREE.MeshBasicMaterial({color:0xe6b25f, transparent:true, opacity:0, side:THREE.DoubleSide}));
+    ring.rotation.x = -Math.PI/2;
+    ring.position.y = 0.004;
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,
+      color:0x38d6bb, transparent:true, opacity:0.55, depthWrite:false, blending:THREE.AdditiveBlending}));
+    glow.position.y = 0.072; glow.scale.set(0.055,0.055,1);
+    [pole,dia,ring].forEach(m=>{ m.userData={type:'landmark',idx}; g.add(m); markerMeshes.push(m); });
+    g.add(glow);
+    landmarkGroup.add(g);
+    markerData.push({group:g, dia, ring, glow, phase:Math.random()*Math.PI*2});
+  });
+  earthGroup.add(landmarkGroup);
+  landmarkGroup.visible = false;
+}
+function updateMarkers(dt){
+  if(!landmarkGroup || !landmarkGroup.visible) return;
+  const t = clock.elapsedTime;
+  markerData.forEach((md,idx)=>{
+    if(idx===selectedMarker){
+      const s = 1 + Math.sin(t*3.2)*0.18;
+      md.dia.scale.setScalar(1.5*s);
+      md.dia.material.color.setHex(0xe6b25f);
+      md.dia.material.emissive.setHex(0x4a3208);
+      const p = (t*0.5 + md.phase) % 1;
+      md.ring.scale.setScalar(1 + p*2.2);
+      md.ring.material.opacity = (1-p)*0.8;
+      md.glow.material.color.setHex(0xe6b25f);
+      md.glow.scale.set(0.09+0.02*s, 0.09+0.02*s, 1);
+      md.glow.material.opacity = 0.9;
+    } else {
+      const hov = idx===hoveredMarker;
+      md.dia.scale.setScalar(hov ? 1.35 : 1);
+      md.dia.material.color.setHex(0x38d6bb);
+      md.dia.material.emissive.setHex(0x0e3a34);
+      md.ring.material.opacity = 0;
+      md.glow.material.color.setHex(0x38d6bb);
+      md.glow.scale.set(hov?0.075:0.055, hov?0.075:0.055, 1);
+      md.glow.material.opacity = hov ? 0.85 : 0.55;
+    }
+  });
+}
+
+/* ============================================================
+   图层四：地球内部圈层爆炸拆解
+   ============================================================ */
+const layerMeshes = [];
+const interfaceMeshes = [];
+const pDots = [];
+let layerWaveGroup = null;
+let waveSource = null, sWaveMeta = null, sWaveGeo = null, sPacket = null;
+let wavePhase = 0, sPacketT = 0;
+let explodeAmt = 0;
+function makeLayerLabel(text, color, width=0.58, height=0.14){
+  const cv=document.createElement('canvas'); cv.width=512; cv.height=160;
+  const cx=cv.getContext('2d');
+  cx.fillStyle='rgba(8,15,24,0.86)'; cx.fillRect(0,0,512,160);
+  cx.strokeStyle=color; cx.lineWidth=4; cx.strokeRect(4,4,504,152);
+  const lines=text.split('\n');
+  cx.fillStyle='#e7eff6'; cx.textAlign='center';
+  if(lines.length===1){
+    cx.font='600 48px sans-serif'; cx.fillText(lines[0],256,96);
+  }else{
+    cx.font='600 42px sans-serif'; cx.fillText(lines[0],256,66);
+    cx.font='500 31px sans-serif'; cx.fillStyle='#b9c9d6'; cx.fillText(lines[1],256,118);
+  }
+  const tex=new THREE.CanvasTexture(cv);
+  const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,opacity:0,depthWrite:false,depthTest:false}));
+  sprite.scale.set(width,height,1);
+  return sprite;
+}
+function createLayerGroup(){
+  layerGroup = new THREE.Group();
+  const intactY=[-0.72,-0.43,-0.14,0.15,0.44,0.73];
+  EARTH_LAYERS.forEach((l,i)=>{
+    const g = new THREE.Group();
+    const r = l.vis;
+    const emitFactor = [0.6,0.45,0.30,0.24,0.28,0.15][i];
+    const op = [1,0.62,0.50,0.45,0.50,0.35][i];
+    const mat = new THREE.MeshPhongMaterial({
+      color:new THREE.Color(l.color),
+      emissive:new THREE.Color(l.color).multiplyScalar(emitFactor),
+      shininess:32, transparent:true, opacity:op, side:THREE.DoubleSide, depthWrite:false
+    });
+    const sphere = new THREE.Mesh(new THREE.SphereGeometry(r, i===5?72:48, i===5?72:48), mat);
+    sphere.userData = {type:'layer',idx:i};
+    g.add(sphere);
+    const eqPts = [];
+    for(let a=0;a<72;a++){
+      const ang = a/72*Math.PI*2;
+      eqPts.push(new THREE.Vector3(Math.cos(ang)*r, 0, Math.sin(ang)*r));
+    }
+    const ringCol = new THREE.Color(l.color).lerp(new THREE.Color(0xffffff), 0.55);
+    g.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(eqPts),
+      new THREE.LineBasicMaterial({color:ringCol, transparent:true, opacity:0.85})));
+    const side=i%2?-1:1;
+    const intactPos=new THREE.Vector3(side*1.18,intactY[i],0);
+    const explodePos=new THREE.Vector3(side*0.38,0,0);
+    const label = makeLayerLabel(`${l.name}\n${layerDepthText(l)}`,l.color);
+    label.position.copy(intactPos);
+    label.material.opacity=0.95;
+    g.add(label);
+    layerGroup.add(g);
+    layerMeshes.push({group:g, label, index:i, intactPos, explodePos});
+  });
+  EARTH_INTERFACES.forEach(inf=>{
+    const g=new THREE.Group();
+    const eqPts=[];
+    for(let a=0;a<72;a++){
+      const ang=a/72*Math.PI*2;
+      eqPts.push(new THREE.Vector3(Math.cos(ang)*inf.vis,0,Math.sin(ang)*inf.vis));
+    }
+    g.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(eqPts),
+      new THREE.LineBasicMaterial({color:inf.color,transparent:true,opacity:0.95})));
+    const label=makeLayerLabel(`${inf.name}\n地下 ${depthFromRadius(inf.radiusKm)} km`,inf.color,0.52,0.13);
+    label.position.set(inf.radiusKm===3480?-0.55:0.55,inf.vis+0.12,0);
+    label.material.opacity=1;
+    g.add(label);
+    layerGroup.add(g);
+    interfaceMeshes.push({group:g,label});
+  });
+
+  const waveGroup=new THREE.Group();
+  layerWaveGroup=waveGroup;
+  waveSource=new THREE.Vector3(0,1,0);
+  const pEnd=new THREE.Vector3(0,-1,0);
+  const sEnd=new THREE.Vector3(0.22,0.31,0);
+
+  const sourceMesh=new THREE.Mesh(new THREE.SphereGeometry(0.045,20,20),
+    new THREE.MeshBasicMaterial({color:'#ffd25c'}));
+  sourceMesh.position.copy(waveSource);
+  const sourceLabel=makeLayerLabel('震源','#ffd25c',0.24,0.07);
+  sourceLabel.position.set(0,1.13,0); sourceLabel.material.opacity=1;
+  waveGroup.add(sourceMesh,sourceLabel);
+
+  waveGroup.add(new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([waveSource,pEnd]),
+    new THREE.LineBasicMaterial({color:'#53d9a8',transparent:true,opacity:0.32})));
+  for(let i=0;i<10;i++){
+    const base=i/9;
+    const dot=new THREE.Mesh(new THREE.SphereGeometry(0.018,14,14),
+      new THREE.MeshBasicMaterial({color:'#53d9a8',transparent:true,opacity:0.95}));
+    dot.position.set(-0.04,1-2*base,0);
+    waveGroup.add(dot);
+    pDots.push({mesh:dot,base});
+  }
+  function downArrow(){
+    const cone=new THREE.Mesh(new THREE.ConeGeometry(0.035,0.09,16),
+      new THREE.MeshBasicMaterial({color:'#53d9a8'}));
+    cone.rotation.z=Math.PI;
+    return cone;
+  }
+  [0.55,0.1,-0.35,-0.8].forEach(y=>{
+    const a=downArrow();a.position.set(0.07,y,0);waveGroup.add(a);
+  });
+  const pLabel=makeLayerLabel('纵波 P\n振动∥传播，可穿过外核','#53d9a8',0.52,0.13);
+  pLabel.position.set(0.58,0.55,0);pLabel.material.opacity=1;
+  waveGroup.add(pLabel);
+
+  waveGroup.add(new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([waveSource,sEnd]),
+    new THREE.LineBasicMaterial({color:'#ff8a5c',transparent:true,opacity:0.32})));
+  const sDir=sEnd.clone().sub(waveSource);
+  const sUnit=sDir.clone().normalize();
+  const sPerp=new THREE.Vector3(-sUnit.y,sUnit.x,0);
+  sWaveMeta={dir:sDir,unit:sUnit,perp:sPerp,end:sEnd};
+  const SEG=80;
+  sWaveGeo=new THREE.BufferGeometry();
+  sWaveGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array((SEG+1)*3),3));
+  waveGroup.add(new THREE.Line(sWaveGeo,
+    new THREE.LineBasicMaterial({color:'#ff8a5c',transparent:true,opacity:0.95})));
+  const stopRing=new THREE.Mesh(new THREE.TorusGeometry(0.05,0.006,8,32),
+    new THREE.MeshBasicMaterial({color:'#ff5252'}));
+  stopRing.position.copy(sEnd);
+  sPacket=new THREE.Mesh(new THREE.SphereGeometry(0.028,16,16),
+    new THREE.MeshBasicMaterial({color:'#ff8a5c'}));
+  sPacket.position.copy(waveSource).addScaledVector(sDir,0.5);
+  const sLabel=makeLayerLabel('横波 S\n振动⊥传播，止于古登堡面','#ff8a5c',0.56,0.13);
+  sLabel.position.set(-0.72,0.58,0);sLabel.material.opacity=1;
+  waveGroup.add(stopRing,sPacket,sLabel);
+  layerGroup.add(waveGroup);
+  buildSWave(0);
+
+  scene.add(layerGroup);
+  layerGroup.visible = false;
+}
+function buildSWave(phase){
+  if(!sWaveGeo||!sWaveMeta||!waveSource)return;
+  const arr=sWaveGeo.attributes.position.array, SEG=80;
+  for(let j=0;j<=SEG;j++){
+    const t=j/SEG;
+    const p=waveSource.clone().addScaledVector(sWaveMeta.dir,t);
+    p.addScaledVector(sWaveMeta.perp,Math.sin(t*7*Math.PI+phase)*0.028);
+    arr[j*3]=p.x;arr[j*3+1]=p.y;arr[j*3+2]=p.z;
+  }
+  sWaveGeo.attributes.position.needsUpdate=true;
+}
+function updateLayerWaves(dt){
+  if(!layerGroup||!layerGroup.visible)return;
+  wavePhase=reducedMotion?0:wavePhase+dt*3.4;
+  pDots.forEach(d=>{
+    const t=(d.base+0.035*Math.sin(wavePhase+d.base*Math.PI*2)+1)%1;
+    d.mesh.position.set(-0.04,1-2*t,0);
+  });
+  buildSWave(wavePhase);
+  sPacketT=reducedMotion?0.5:(sPacketT+dt*0.45)%1;
+  if(sPacket)sPacket.position.copy(waveSource).addScaledVector(sWaveMeta.dir,sPacketT);
+}
+function setExplode(v){
+  explodeAmt = v;
+  const SPACING = 0.42;
+  const n=layerMeshes.length;
+  layerMeshes.forEach((m,i)=>{
+    m.group.position.y = v * (i - (n-1)/2) * SPACING;
+    m.label.position.lerpVectors(m.intactPos,m.explodePos,v);
+    m.label.material.opacity = 0.95;
+  });
+  if(layerWaveGroup) layerWaveGroup.visible = v < 0.15;
+  interfaceMeshes.forEach(im=>{ im.group.visible = v < 0.15; });
+}
+function moveCamera(pos, dur){
+  state.flying = true; controls.enabled = false;
+  if(window.gsap && !reducedMotion){
+    gsap.killTweensOf(camera.position);
+    gsap.killTweensOf(controls.target);
+    gsap.to(camera.position,{x:pos[0],y:pos[1],z:pos[2],duration:dur,ease:CAM_EASE,
+      onComplete(){state.flying=false;controls.target.set(0,0,0);controls.enabled=true;}});
+  } else { camera.position.set(pos[0],pos[1],pos[2]); state.flying=false; controls.enabled=true; }
+}
+function enterLayerMode(){
+  earthGroup.visible = false;
+  atmosphere.visible = false;
+  layerGroup.visible = true;
+  moveCamera([0,0.4,6.8], 1.3);
+}
+function exitLayerMode(){
+  layerGroup.visible = false;
+  earthGroup.visible = true;
+  atmosphere.visible = true;
+  moveCamera([DEFAULT_CAMERA.x,DEFAULT_CAMERA.y,DEFAULT_CAMERA.z], 1.3);
+}
+
+/* ============================================================
+   太阳系：数据（真实值）+ 程序化纹理 + 场景构建
+   说明：轨道间距与行星大小为教学可视化，非真实比例
+   ============================================================ */
+const PLANETS = [
+ {name:'水星',en:'Mercury',size:0.12,orbit:2.3,speed:1.6,color:'#9c8f83',band:false,ring:false,
+  diameter:4879,distance:57.9,period:'88 天',rotation:'58.6 天',moons:0,temp:'-173～427℃',
+  desc:'距太阳最近、体积最小的行星，几乎没有大气，昼夜温差极大，表面布满陨石坑。'},
+ {name:'金星',en:'Venus',size:0.18,orbit:3.2,speed:1.17,color:'#e3c285',band:false,ring:false,
+  diameter:12104,distance:108.2,period:'225 天',rotation:'243 天（逆向）',moons:0,temp:'约 462℃',
+  desc:'最热的行星，浓密二氧化碳大气产生强烈温室效应，自转方向与其他行星相反。'},
+ {name:'地球',en:'Earth',size:0.19,orbit:4.2,speed:1.0,color:'#4f86c6',band:false,ring:false,earth:true,
+  diameter:12756,distance:149.6,period:'365.25 天',rotation:'23时56分',moons:1,temp:'平均约 15℃',
+  desc:'目前已知唯一存在生命的行星，表面约 71% 被液态水覆盖，有适宜的大气与温度。'},
+ {name:'火星',en:'Mars',size:0.15,orbit:5.2,speed:0.8,color:'#c1502e',band:false,ring:false,
+  diameter:6792,distance:227.9,period:'687 天',rotation:'24.6 小时',moons:2,temp:'-87～-5℃',
+  desc:'因氧化铁呈红色，拥有太阳系最高的奥林匹斯山，两极有冰冠，是深空探测重点。'},
+ {name:'木星',en:'Jupiter',size:0.52,orbit:7.0,speed:0.43,color:'#d8a878',band:true,ring:false,
+  diameter:142984,distance:778.5,period:'11.86 年',rotation:'9.9 小时',moons:95,temp:'云顶约 -145℃',
+  desc:'太阳系最大的行星，气态巨行星，有持续数百年的“大红斑”风暴，卫星众多。'},
+ {name:'土星',en:'Saturn',size:0.44,orbit:8.8,speed:0.32,color:'#e0c48c',band:true,ring:true,
+  diameter:120536,distance:1434,period:'29.46 年',rotation:'10.7 小时',moons:146,temp:'约 -140℃',
+  desc:'以壮观的冰质光环闻名，平均密度比水还低，是最“轻盈”的行星。'},
+ {name:'天王星',en:'Uranus',size:0.31,orbit:10.4,speed:0.23,color:'#8fd3d8',band:false,ring:false,tilt:true,
+  diameter:51118,distance:2871,period:'84 年',rotation:'17.2 小时（侧躺）',moons:28,temp:'约 -195℃',
+  desc:'自转轴几乎“躺”在公转轨道面上，甲烷使其呈蓝绿色，属于冰巨星。'},
+ {name:'海王星',en:'Neptune',size:0.30,orbit:11.8,speed:0.18,color:'#3f66d6',band:false,ring:false,
+  diameter:49528,distance:4495,period:'165 年',rotation:'16 小时',moons:16,temp:'约 -200℃',
+  desc:'距太阳最远的行星，深蓝色，拥有太阳系最猛烈的风暴，风速可超 2000 km/h。'}
+];
+
+/* ============================================================
+   太阳内部结构（从内到外：内部三层 + 大气三层）
+   ============================================================ */
+const SUN_LAYERS=[
+ {name:'核反应区',r:0.26,color:'#fff0a8',depth:'约占半径 25%',
+  temp:'约 1500 万℃',density:'约 150 g/cm³',
+  composition:'氢核聚变为氦，释放巨大能量',
+  desc:'太阳能量的真正来源，氢原子核在高温高压下发生核聚变，转化为氦并释放能量。'},
+ {name:'辐射区',r:0.58,color:'#ffd25c',depth:'约占半径 25%～70%',
+  temp:'约 700 万～200 万℃',density:'20～0.2 g/cm³',
+  composition:'以 X 射线、γ 射线形式向外传递能量',
+  desc:'核心产生的能量通过光子反复吸收、再发射的方式缓慢向外传递，能量穿越此区需约 17 万年。'},
+ {name:'对流区',r:0.86,color:'#ff9d3c',depth:'约占半径 70%～100%',
+  temp:'约 200 万～5500℃',density:'较低',
+  composition:'高温等离子体上升、冷却后下沉，形成对流',
+  desc:'能量主要靠等离子体的对流运动传递，类似锅中沸水翻滚，把热量带到太阳表面。'},
+ {name:'光球层',r:1.0,color:'#ffd76a',depth:'太阳大气底层，厚约 500 km',
+  temp:'约 5500℃',density:'稀薄',
+  composition:'肉眼所见的太阳“表面”，太阳黑子出现于此',
+  desc:'我们平时看到的明亮太阳圆面就是光球层，太阳黑子是其表面温度较低的暗区，有约 11 年周期。'},
+ {name:'色球层',r:1.1,color:'#ff6a5c',depth:'太阳大气中层，厚约 2000 km',
+  temp:'约 6000～几万℃',density:'更稀薄',
+  composition:'日全食时可见玫瑰色光环，耀斑、日珥出现于此',
+  desc:'平时被光球强光掩盖，日全食时呈现一圈玫瑰色，耀斑和日珥都发生在这一层。'},
+ {name:'日冕层',r:1.42,color:'#bfe0ff',depth:'太阳大气最外层，延伸极远',
+  temp:'高达 100 万℃以上',density:'极稀薄',
+  composition:'太阳风的发源地，日全食时可见白色冕状结构',
+  desc:'太阳最外层的稀薄大气，不断向外抛射带电粒子形成太阳风，日全食时可见美丽的白色冕。'}
+];
+
+/* 太阳活动 */
+const SOLAR_ACTIVITIES=[
+ {name:'太阳黑子',layer:'光球层',color:'#7a4a20',
+  fact:'光球表面温度较低（约 3000～4500℃）的暗区，数量有约 11 年的周期，是太阳活动强弱的主要标志。',
+  effect:'黑子增多时，其他太阳活动也更频繁。'},
+ {name:'耀斑',layer:'色球层',color:'#ff5a3c',
+  fact:'太阳大气局部突然剧烈增亮、短时间释放大量能量的现象，是最剧烈的太阳活动。',
+  effect:'发射强烈电磁辐射，扰动电离层，导致短波通信中断、导航失灵。'},
+ {name:'日珥',layer:'色球层',color:'#ffb24d',
+  fact:'从色球层猛烈喷出、呈巨大弧形的等离子体流，可高达数十万千米，再落回太阳表面。',
+  effect:'部分物质被抛入太空，增强太阳风。'},
+ {name:'太阳风',layer:'日冕层',color:'#8fd0ff',
+  fact:'日冕层持续向外抛射的高速带电粒子流，速度可达 300～800 km/s。',
+  effect:'到达地球后在两极形成极光，强烈时引发磁暴、干扰卫星与电网。'}
+];
+
+/* 月球数据 */
+const MOON_DATA={
+ name:'月球',diameter:3476,distance:38.4,period:'27.3 天',rotation:'27.3 天（同步自转）',
+ temp:'-183～127℃',gravity:'约为地球的 1/6',
+ desc:'地球唯一的天然卫星，自转与公转周期相同（潮汐锁定），所以总是同一面朝向地球；无大气和水，表面布满环形山。',
+ phases:['新月（朔，农历初一）','上弦月（初七八）','满月（望，十五六）','下弦月（廿二三）']
+};
+
+/* 日食与月食 */
+const ECLIPSE_DATA=[
+ {name:'日全食',type:'solar',align:'太阳—月球—地球 成一直线',
+  time:'发生在农历初一（朔）前后',
+  desc:'月球运行到太阳与地球之间，本影扫过地球，本影区内太阳被完全遮住，可看到日冕和星空。还有日偏食、日环食。'},
+ {name:'月全食',type:'lunar',align:'太阳—地球—月球 成一直线',
+  time:'发生在农历十五（望）前后',
+  desc:'月球运行进入地球本影，阳光经地球大气折射使月面呈暗铜红色，又称“红月亮”。还有月偏食。'}
+];
+
+/* 程序化生成行星纹理：岩石行星加噪声，气态行星加水平条纹 */
+function makePlanetTexture(p){
+  const c=document.createElement('canvas');c.width=256;c.height=128;
+  const x=c.getContext('2d');
+  x.fillStyle=p.color;x.fillRect(0,0,256,128);
+  if(p.band){
+    const cols=['#00000022','#ffffff22','#00000030','#ffffff18','#00000025'];
+    for(let i=0;i<14;i++){x.fillStyle=cols[i%cols.length];
+      x.fillRect(0,i*9+2,256,4+(i%3)*2);}
+  } else {
+    for(let i=0;i<260;i++){
+      const w=Math.random()<.5?'#00000020':'#ffffff18';
+      x.fillStyle=w;x.beginPath();
+      x.arc(Math.random()*256,Math.random()*128,Math.random()*2.2+0.4,0,7);x.fill();
+    }
+  }
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;
+  t.anisotropy=renderer.capabilities.getMaxAnisotropy();
+  return t;
+}
+let solarSystemGroup=null, solarPlanetObjs=[], solarSpeed=1, solarPaused=false, solarCurrentIdx=-1;
+let moonObj=null, asteroidBelt=null, sunActivityMarkers=[], solarLabelObjs=[], solarActivitySelected=0;
+let sunLayerGroup=null, sunLayerMeshes=[], sunExplodeAmt=0, sunLayerMode=false, sunLayerSelected=0;
+/* 天体名称标签（CSS2D） */
+function makeSolarLabel(text, kind){
+  const div=document.createElement('div');
+  div.className='solar-label'+(kind?' '+kind:'');
+  div.textContent=text;
+  return new CSS2DObject(div);
+}
+function createSolarSystem(){
+  solarSystemGroup=new THREE.Group();
+  /* 太阳：自发光 + 外层辉光 */
+  const sunTex=(()=>{const c=document.createElement('canvas');c.width=256;c.height=128;
+    const x=c.getContext('2d');x.fillStyle='#ffcf5c';x.fillRect(0,0,256,128);
+    for(let i=0;i<300;i++){x.fillStyle=Math.random()<.5?'#ff9a2e66':'#fff2b055';
+      x.beginPath();x.arc(Math.random()*256,Math.random()*128,Math.random()*3+0.5,0,7);x.fill();}
+    const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;})();
+  const sun=new THREE.Mesh(new THREE.SphereGeometry(0.72,64,64),
+    new THREE.MeshBasicMaterial({map:sunTex}));
+  sun.userData={type:'solarBody',idx:-1};
+  solarSystemGroup.add(sun);
+  const sunPoint=new THREE.PointLight(0xfff2d8,2.6,60,0.6);
+  solarSystemGroup.add(sunPoint);
+  const sunGlow=new THREE.Mesh(new THREE.SphereGeometry(0.95,32,32),
+    new THREE.MeshBasicMaterial({color:0xffb24d,transparent:true,opacity:.18,
+      blending:THREE.AdditiveBlending,depthWrite:false}));
+  solarSystemGroup.add(sunGlow);
+  solarSystemGroup.userData.sun=sun;
+
+  /* 太阳名称标签 */
+  const sunLabel=makeSolarLabel('太阳','sun');sunLabel.position.set(0,0.98,0);
+  solarSystemGroup.add(sunLabel);solarLabelObjs.push(sunLabel);
+
+  /* 太阳活动标记：黑子（深色）+ 耀斑（亮橙），贴在太阳表面 */
+  const spotGeo=new THREE.SphereGeometry(0.07,12,12);
+  [[0.5,0.35,0.45],[0.3,-0.4,0.62],[-0.55,0.2,0.5]].forEach(v=>{
+    const s=new THREE.Mesh(spotGeo,new THREE.MeshBasicMaterial({color:0x6e3a18}));
+    s.position.set(v[0],v[1],v[2]).normalize().multiplyScalar(0.73);
+    s.userData={type:'solarActivity',act:0};solarSystemGroup.add(s);sunActivityMarkers.push(s);
+  });
+  const flare=new THREE.Mesh(new THREE.SphereGeometry(0.09,14,14),
+    new THREE.MeshBasicMaterial({color:0xff5a2c}));
+  flare.position.set(-0.4,0.45,0.5).normalize().multiplyScalar(0.74);
+  flare.userData={type:'solarActivity',act:1};solarSystemGroup.add(flare);sunActivityMarkers.push(flare);
+
+  PLANETS.forEach((p,i)=>{
+    const pivot=new THREE.Group();solarSystemGroup.add(pivot);
+    /* 轨道环 */
+    const pts=[];
+    for(let a=0;a<128;a++){const ang=a/128*Math.PI*2;
+      pts.push(new THREE.Vector3(Math.cos(ang)*p.orbit,0,Math.sin(ang)*p.orbit));}
+    solarSystemGroup.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts),
+      new THREE.LineBasicMaterial({color:0x6fa8c9,transparent:true,opacity:.32})));
+    const mat=p.earth
+      ? new THREE.MeshPhongMaterial({color:0x4f86c6,emissive:0x0a1a2a,shininess:18})
+      : new THREE.MeshPhongMaterial({map:makePlanetTexture(p),shininess:14});
+    const body=new THREE.Mesh(
+      new THREE.SphereGeometry(p.size,isMobile?40:48,isMobile?40:48),mat);
+    body.position.set(p.orbit,0,0);
+    body.userData={type:'solarBody',idx:i};
+    pivot.add(body);
+    if(p.ring){
+      const ringMesh=new THREE.Mesh(new THREE.RingGeometry(p.size*1.4,p.size*2.3,64),
+        new THREE.MeshBasicMaterial({color:0xd9c79a,side:THREE.DoubleSide,
+          transparent:true,opacity:.75}));
+      ringMesh.rotation.x=Math.PI/2.3;body.add(ringMesh);
+    }
+    /* 行星名称标签（跟随行星，在其上方） */
+    const plabel=makeSolarLabel(p.name);
+    plabel.position.set(0,p.size+0.2,0);body.add(plabel);solarLabelObjs.push(plabel);
+
+    /* 地月系：月球绕地球 */
+    if(p.earth){
+      const moonPivot=new THREE.Group();body.add(moonPivot);
+      const moon=new THREE.Mesh(new THREE.SphereGeometry(0.065,20,20),
+        new THREE.MeshPhongMaterial({color:0xd2d2d2,shininess:8}));
+      moon.position.set(0.36,0,0);
+      moon.userData={type:'solarBody',idx:100};
+      moonPivot.add(moon);
+      const ml=makeSolarLabel('月球');ml.position.set(0,0.13,0);moon.add(ml);solarLabelObjs.push(ml);
+      moonObj={pivot:moonPivot,moon,angle:0};
+    }
+    solarPlanetObjs.push({pivot,body,p,angle:Math.random()*Math.PI*2});
+  });
+
+  /* 小行星带：火星(5.2)与木星(7.0)之间 */
+  const N=420,pos=new Float32Array(N*3);
+  for(let i=0;i<N;i++){
+    const r=5.95+Math.random()*0.75,a=Math.random()*Math.PI*2;
+    pos[i*3]=Math.cos(a)*r;pos[i*3+1]=(Math.random()-.5)*0.16;pos[i*3+2]=Math.sin(a)*r;
+  }
+  const ag=new THREE.BufferGeometry();ag.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  asteroidBelt=new THREE.Points(ag,new THREE.PointsMaterial({color:0xb0a07e,size:0.05,
+    transparent:true,opacity:.82,depthWrite:false}));
+  solarSystemGroup.add(asteroidBelt);
+
+  scene.add(solarSystemGroup);
+  solarSystemGroup.visible=false;
+  /* 初始为地球视图：名称标签默认隐藏，进入太阳系时再恢复 */
+  solarLabelObjs.forEach(o=>o.visible=false);
+}
+
+/* ============================================================
+   太阳结构拆解组（嵌套球 + 对称爆炸）
+   ============================================================ */
+const SUN_VIS_BASE=0.85;
+function createSunLayerGroup(){
+  sunLayerGroup=new THREE.Group();
+  SUN_LAYERS.forEach((l,i)=>{
+    const g=new THREE.Group();
+    const r=l.r*SUN_VIS_BASE;
+    const mat=new THREE.MeshPhongMaterial({
+      color:new THREE.Color(l.color),
+      emissive:new THREE.Color(l.color).multiplyScalar(0.42),
+      shininess:26,transparent:true,opacity:i<3?0.92:0.4,side:THREE.DoubleSide,depthWrite:false});
+    const sphere=new THREE.Mesh(
+      new THREE.SphereGeometry(r,isMobile?48:64,isMobile?48:64),mat);
+    sphere.userData={type:'sunLayer',idx:i};
+    g.add(sphere);
+    /* 边界环 */
+    const ep=[];
+    for(let a=0;a<72;a++){const ang=a/72*Math.PI*2;
+      ep.push(new THREE.Vector3(Math.cos(ang)*r,0,Math.sin(ang)*r));}
+    const rc=new THREE.Color(l.color).lerp(new THREE.Color(0xffffff),0.5);
+    g.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(ep),
+      new THREE.LineBasicMaterial({color:rc,transparent:true,opacity:.8})));
+    /* 标签 */
+    const cv=document.createElement('canvas');cv.width=512;cv.height=128;
+    const cx=cv.getContext('2d');
+    cx.fillStyle='rgba(8,15,24,.82)';cx.fillRect(0,0,512,128);
+    cx.strokeStyle=l.color;cx.lineWidth=4;cx.strokeRect(4,4,504,120);
+    cx.fillStyle='#e7eff6';cx.font='600 50px sans-serif';cx.textAlign='center';
+    cx.fillText(l.name,256,80);
+    const label=new THREE.Sprite(new THREE.SpriteMaterial({
+      map:new THREE.CanvasTexture(cv),transparent:true,opacity:0,depthWrite:false,depthTest:false}));
+    label.scale.set(0.42,0.105,1);label.position.y=r+0.1;
+    g.add(label);
+    sunLayerGroup.add(g);
+    sunLayerMeshes.push({group:g,label,index:i});
+  });
+  scene.add(sunLayerGroup);sunLayerGroup.visible=false;
+}
+function setSunExplode(v){
+  sunExplodeAmt=v;const SPACING=0.42;
+  sunLayerMeshes.forEach((m,i)=>{
+    m.group.position.y=v*(i-2.5)*SPACING;
+    m.label.material.opacity=v>0.12?Math.min(1,(v-0.12)*2.2):0;
+  });
+}
+function enterSunLayerMode(){
+  sunLayerMode=true;
+  solarSystemGroup.visible=false;
+  solarLabelObjs.forEach(o=>o.visible=false);
+  sunLayerGroup.visible=true;
+  controls.minDistance=1.4;controls.maxDistance=16;
+  moveCamera([0,0.6,7.6],1.4);
+}
+function exitSunLayerMode(){
+  sunLayerMode=false;
+  sunLayerGroup.visible=false;
+  solarSystemGroup.visible=true;
+  solarLabelObjs.forEach(o=>o.visible=true);
+  controls.minDistance=1.6;controls.maxDistance=26;
+  moveCamera([0,7.4,15.4],1.4);
+}
+
+/* 行星公转、月球公转与小行星带旋转 */
+function updateSolarOrbits(dt){
+  if(!solarSystemGroup||!solarSystemGroup.visible)return;
+  if(!solarPaused){
+    const base=dt*0.28*solarSpeed;
+    solarPlanetObjs.forEach(o=>{
+      o.angle+=base*o.p.speed;
+      o.pivot.rotation.y=o.angle;
+      o.body.rotation.y+=dt*0.5;
+    });
+    if(moonObj){moonObj.angle+=dt*1.4*solarSpeed;moonObj.pivot.rotation.y=moonObj.angle;}
+    if(asteroidBelt)asteroidBelt.rotation.y+=dt*0.06*solarSpeed;
+  }
+  updateSolarActivity(dt);
+}
+/* 太阳活动标记脉动（黑子微闪、耀斑明暗） */
+function updateSolarActivity(dt){
+  const t=clock.elapsedTime;
+  sunActivityMarkers.forEach((m,i)=>{
+    const pulse=1+Math.sin(t*2.4+i*1.7)*0.18;
+    m.scale.setScalar(pulse);
+  });
+}
+
+/* 进入 / 退出太阳系模式 */
+function enterSolarMode(){
+  earthGroup.visible=false;atmosphere.visible=false;
+  if(climateGroup)climateGroup.visible=false;
+  if(currentGroup)currentGroup.visible=false;
+  if(landmarkGroup)landmarkGroup.visible=false;
+  if(layerGroup)layerGroup.visible=false;
+  solarSystemGroup.visible=true;
+  /* CSS2D 不随父级显隐，进入时恢复名称标签（太阳结构模式除外） */
+  if(!sunLayerMode)solarLabelObjs.forEach(o=>o.visible=true);
+  controls.minDistance=1.6;controls.maxDistance=26;
+  moveCamera([0,7.4,15.4],1.5);
+}
+function exitSolarMode(){
+  solarSystemGroup.visible=false;
+  /* 切回地球：手动隐藏全部太阳系名称标签，避免残留悬浮 */
+  solarLabelObjs.forEach(o=>o.visible=false);
+  earthGroup.visible=true;atmosphere.visible=true;
+  controls.minDistance=1.32;controls.maxDistance=6;
+  moveCamera([DEFAULT_CAMERA.x,DEFAULT_CAMERA.y,DEFAULT_CAMERA.z],1.3);
+}
+
+/* 太阳系面板渲染 */
+function solarCell(k,v){return `<div class="dp-cell"><div class="k">${k}</div><div class="v">${v}</div></div>`;}
+function solarRow(p,i){
+  return `<button class="dp-list-item" data-planet="${i}">
+    <span class="sw" style="background:${p.color}"></span>
+    <span class="nm">${p.name}</span>
+    <span style="margin-left:auto;font-size:12px;color:var(--faint)">${p.distance} 百万 km</span></button>`;
+}
+/* 专题探索入口 */
+function solarTopicRow(v,label,sub,color){
+  return `<button class="dp-list-item" data-solarview="${v}">
+    <span class="sw" style="background:${color}"></span>
+    <span class="nm">${label}</span>
+    <span style="margin-left:auto;font-size:12px;color:var(--faint)">${sub}</span></button>`;
+}
+function renderSolarPanel(idx){
+  solarCurrentIdx=idx;
+  /* 太阳结构专题：切换到拆解 3D 视图；离开则恢复 */
+  if(idx===110&&!sunLayerMode)enterSunLayerMode();
+  else if(idx!==110&&sunLayerMode)exitSunLayerMode();
+  if(idx===100)return renderMoonPanel();
+  if(idx===110)return renderSunStructurePanel();
+  if(idx===111)return renderSunActivityPanel();
+  if(idx===112)return renderAsteroidPanel();
+  if(idx===120||idx===121)return renderEclipsePanel(idx);
+  if(idx===-1){
+    detailBody.innerHTML=`
+      <div class="dp-kicker">SOLAR SYSTEM</div>
+      <div class="dp-title">太阳系</div>
+      <p class="dp-desc" style="margin-top:12px">以太阳为中心，由八大行星及其卫星、矮行星、小行星、彗星等组成的天体系统，形成于约 46 亿年前。</p>
+      <div class="dp-grid">
+        ${solarCell('太阳直径','约 139.2 万 km')}
+        ${solarCell('太阳质量','占太阳系 99.86%')}
+        ${solarCell('行星数量','8 颗')}
+        ${solarCell('日地距离','1.496 亿 km')}
+      </div>
+      ${solarControlsHtml()}
+      <div class="dp-section-title">专题探索</div>
+      <div class="dp-list">
+        ${solarTopicRow(110,'太阳结构拆解','内部三层 + 大气三层','#ffd25c')}
+        ${solarTopicRow(111,'太阳活动','黑子 · 耀斑 · 日珥 · 太阳风','#ff5a3c')}
+        ${solarTopicRow(112,'小行星带','火星与木星之间','#b0a07e')}
+        ${solarTopicRow(100,'地月系与月球','地球唯一天然卫星','#d2d2d2')}
+        ${solarTopicRow(120,'日全食','月球遮挡太阳','#8fd0ff')}
+        ${solarTopicRow(121,'月全食','红月亮','#c1502e')}
+      </div>
+      <div class="dp-section-title">八大行星（按距日由近及远）</div>
+      <div class="dp-list">${PLANETS.map((p,i)=>solarRow(p,i)).join('')}</div>
+      <div class="dp-note">可视化中轨道间距与行星大小为教学比例，已做压缩与放大，非真实尺度；行星数据为真实值。</div>`;
+    return;
+  }
+  const p=PLANETS[idx];
+  detailBody.innerHTML=`
+    <div class="dp-kicker">PLANET · ${p.en.toUpperCase()}</div>
+    <div class="dp-title">${p.name}</div>
+    <p class="dp-desc" style="margin-top:12px">${p.desc}</p>
+    <div class="dp-grid">
+      ${solarCell('赤道直径',p.diameter.toLocaleString()+' km')}
+      ${solarCell('距日距离',p.distance+' 百万 km')}
+      ${solarCell('公转周期',p.period)}
+      ${solarCell('自转周期',p.rotation)}
+      ${solarCell('卫星数量',p.moons+' 颗')}
+      ${solarCell('表面温度',p.temp)}
+    </div>
+    ${p.earth?solarTopicRow(100,'查看地月系与月球','月球 · 月相','#d2d2d2'):''}
+    ${solarControlsHtml()}
+    <div class="dp-section-title">其他行星</div>
+    <div class="dp-list">
+      ${PLANETS.map((q,i)=>i===idx?'':solarRow(q,i)).join('')}</div>`;
+}
+
+/* 月球面板 */
+function renderMoonPanel(){
+  const m=MOON_DATA;
+  detailBody.innerHTML=`
+    <div class="dp-kicker">EARTH-MOON SYSTEM</div>
+    <div class="dp-title">地月系 · 月球</div>
+    <p class="dp-desc" style="margin-top:12px">${m.desc}</p>
+    <div class="dp-grid">
+      ${solarCell('赤道直径',m.diameter.toLocaleString()+' km')}
+      ${solarCell('距地距离',m.distance+' 万 km')}
+      ${solarCell('公转周期',m.period)}
+      ${solarCell('自转周期',m.rotation)}
+      ${solarCell('表面温度',m.temp)}
+      ${solarCell('月面重力',m.gravity)}
+    </div>
+    <div class="dp-section-title">月相变化（农历）</div>
+    <div class="dp-list">${m.phases.map(ph=>`<div class="dp-list-item" style="cursor:default"><span class="nm">${ph}</span></div>`).join('')}</div>
+    ${solarControlsHtml()}
+    <div class="dp-section-title">返回</div>
+    <div class="dp-list">${solarTopicRow(-1,'太阳系总览','','#ffd25c')}${solarTopicRow(120,'日全食','', '#8fd0ff')}${solarTopicRow(121,'月全食','','#c1502e')}</div>`;
+}
+
+/* 太阳结构面板 */
+function renderSunStructurePanel(){
+  detailBody.innerHTML=`
+    <div class="dp-kicker">SUN INTERIOR</div>
+    <div class="dp-title">太阳结构拆解</div>
+    <p class="dp-desc" style="margin-top:12px">太阳从内到外分为内部三层（核反应区、辐射区、对流区）和大气三层（光球层、色球层、日冕层）。</p>
+    <div class="solar-ctl" style="flex-direction:column;align-items:stretch;gap:10px">
+      <div class="solar-speed"><span>拆解</span>
+        <input type="range" id="sunExplodeSlider" min="0" max="100" step="1" value="${Math.round(sunExplodeAmt*100)}">
+        <span class="sv">${Math.round(sunExplodeAmt*100)}%</span></div>
+    </div>
+    <div class="dp-list" style="margin-top:14px">
+      ${SUN_LAYERS.map((l,i)=>`<button class="dp-list-item${i===sunLayerSelected?' active':''}" data-sunlayer="${i}">
+        <span class="sw" style="background:${l.color}"></span>
+        <span class="nm">${l.name}</span>
+        <span style="margin-left:auto;font-size:12px;color:var(--faint)">${l.temp}</span></button>`).join('')}
+    </div>
+    <div id="sunLayerDetail"></div>
+    <div class="dp-section-title">返回</div>
+    <div class="dp-list">${solarTopicRow(-1,'太阳系总览','','#ffd25c')}${solarTopicRow(111,'太阳活动','','#ff5a3c')}</div>`;
+  renderSunLayerDetail(0);
+}
+function renderSunLayerDetail(i){
+  sunLayerSelected=i;
+  /* 同步列表选中态，无需重建整个面板 */
+  detailBody.querySelectorAll('[data-sunlayer]').forEach(btn=>{
+    btn.classList.toggle('active',+btn.dataset.sunlayer===i);
+  });
+  const l=SUN_LAYERS[i];
+  const el=$('sunLayerDetail');if(!el)return;
+  el.innerHTML=`
+    <div class="dp-grid" style="margin-top:14px">
+      ${solarCell('范围',l.depth)}${solarCell('温度',l.temp)}
+      ${solarCell('密度',l.density)}${solarCell('主要特征',l.composition)}
+    </div>
+    <p class="dp-desc" style="margin-top:12px">${l.desc}</p>`;
+}
+
+/* 太阳活动面板 */
+function renderSunActivityPanel(){
+  detailBody.innerHTML=`
+    <div class="dp-kicker">SOLAR ACTIVITY</div>
+    <div class="dp-title">太阳活动</div>
+    <p class="dp-desc" style="margin-top:12px">太阳大气经常发生大规模运动，统称太阳活动，主要类型有太阳黑子、耀斑、日珥和太阳风，平均周期约 11 年。</p>
+    <div class="dp-list" style="margin-top:14px">
+      ${SOLAR_ACTIVITIES.map((a,i)=>`<button class="dp-list-item${i===solarActivitySelected?' active':''}" data-actdetail="${i}">
+        <span class="sw" style="background:${a.color}"></span>
+        <span class="nm">${a.name}</span>
+        <span style="margin-left:auto;font-size:12px;color:var(--faint)">${a.layer}</span></button>`).join('')}
+    </div>
+    <div id="actDetail"></div>
+    <div class="dp-section-title">返回</div>
+    <div class="dp-list">${solarTopicRow(-1,'太阳系总览','','#ffd25c')}${solarTopicRow(110,'太阳结构拆解','','#ffd25c')}</div>`;
+  renderActDetail(0);
+}
+function renderActDetail(i){
+  solarActivitySelected=i;
+  detailBody.querySelectorAll('[data-actdetail]').forEach(btn=>{
+    btn.classList.toggle('active',+btn.dataset.actdetail===i);
+  });
+  const a=SOLAR_ACTIVITIES[i];const el=$('actDetail');if(!el)return;
+  el.innerHTML=`<p class="dp-desc" style="margin-top:14px">${a.fact}</p>
+    <p class="dp-desc" style="margin-top:8px;color:var(--muted)">对地球的影响：${a.effect}</p>`;
+}
+
+/* 小行星带面板 */
+function renderAsteroidPanel(){
+  detailBody.innerHTML=`
+    <div class="dp-kicker">ASTEROID BELT</div>
+    <div class="dp-title">小行星带</div>
+    <p class="dp-desc" style="margin-top:12px">位于火星与木星轨道之间，聚集了数百万颗形状不规则的岩石小行星，是太阳系形成时未能凝聚成行星的残余物质。</p>
+    <div class="dp-grid">
+      ${solarCell('位置','约 2.2～3.3 天文单位')}
+      ${solarCell('最大天体','谷神星（矮行星，约 950 km）')}
+      ${solarCell('已知数量','超 100 万颗')}
+      ${solarCell('成因','木星引力扰动，无法聚集成行星')}
+    </div>
+    ${solarControlsHtml()}
+    <div class="dp-section-title">返回</div>
+    <div class="dp-list">${solarTopicRow(-1,'太阳系总览','','#ffd25c')}</div>`;
+}
+
+/* 日食月食面板 */
+function renderEclipsePanel(idx){
+  const e=ECLIPSE_DATA[idx===120?0:1];
+  detailBody.innerHTML=`
+    <div class="dp-kicker">${e.type==='solar'?'SOLAR ECLIPSE':'LUNAR ECLIPSE'}</div>
+    <div class="dp-title">${e.name}</div>
+    <div class="dp-grid" style="margin-top:14px">
+      ${solarCell('天体排列',e.align)}${solarCell('发生时间',e.time)}
+    </div>
+    <p class="dp-desc" style="margin-top:12px">${e.desc}</p>
+    <div class="solar-ctl">
+      <button class="solar-play" id="eclipseDemo">${e.type==='solar'?'演示日全食':'演示月全食'}</button>
+    </div>
+    <div class="dp-section-title">相关</div>
+    <div class="dp-list">
+      ${solarTopicRow(e.type==='solar'?121:120,e.type==='solar'?'月全食':'日全食','','#c1502e')}
+      ${solarTopicRow(100,'地月系与月球','','#d2d2d2')}
+      ${solarTopicRow(-1,'太阳系总览','','#ffd25c')}</div>`;
+}
+
+function solarControlsHtml(){
+  return `<div class="solar-ctl">
+    <button class="solar-play" id="solarPlay">${solarPaused?'播放公转':'暂停公转'}</button>
+    <div class="solar-speed">
+      <span>速度</span>
+      <input type="range" id="solarSpeedSlider" min="0" max="3" step="0.1" value="${solarSpeed}">
+      <span class="sv">${solarSpeed.toFixed(1)}×</span>
+    </div></div>`;
+}
+
+/* 带目标点的相机飞行（用于日食月食演示） */
+const CAM_EASE='power3.inOut';
+function flyToTarget(pos,tgt,dur){
+  state.flying=true;controls.enabled=false;
+  if(window.gsap&&!reducedMotion){
+    gsap.killTweensOf(camera.position);
+    gsap.killTweensOf(controls.target);
+    gsap.timeline({onComplete(){state.flying=false;controls.enabled=true;}})
+      .to(controls.target,{x:tgt.x,y:tgt.y,z:tgt.z,duration:dur,ease:CAM_EASE},0)
+      .to(camera.position,{x:pos[0],y:pos[1],z:pos[2],duration:dur,ease:CAM_EASE},0);
+  }else{camera.position.set(pos[0],pos[1],pos[2]);controls.target.copy(tgt);
+    state.flying=false;controls.enabled=true;}
+}
+/* 日食/月食位置演示 */
+function demoEclipse(type){
+  if(sunLayerMode)exitSunLayerMode();
+  solarPaused=true;
+  const earthO=solarPlanetObjs[2];
+  earthO.angle=0;earthO.pivot.rotation.y=0;
+  if(type==='solar'){
+    moonObj.angle=Math.PI;moonObj.pivot.rotation.y=Math.PI;
+    flyToTarget([4.05,0.5,1.7],new THREE.Vector3(4.2,0,0),1.3);
+  }else{
+    moonObj.angle=0;moonObj.pivot.rotation.y=0;
+    flyToTarget([4.8,0.75,1.9],new THREE.Vector3(4.56,0,0),1.3);
+  }
+}
+
+/* ============================================================
+   相机飞行
+   ============================================================ */
+function flyTo(lat, lon, dist){
+  const d = dist || (isMobile ? 2.0 : 1.85);
+  const target = latLonToVec(lat,lon,d);
+  state.flying = true;
+  controls.enabled = false;
+  if(window.gsap && !reducedMotion){
+    /* 按当前到目标的距离动态定时长，短距离不拖沓、长距离不仓促 */
+    const gap=camera.position.distanceTo(target);
+    const dur=Math.min(1.8,Math.max(0.9,gap*0.42));
+    gsap.killTweensOf(camera.position);
+    gsap.to(camera.position,{x:target.x,y:target.y,z:target.z,duration:dur,
+      ease:CAM_EASE,
+      onComplete:()=>{state.flying=false;controls.target.set(0,0,0);controls.enabled=true;}});
+  } else {
+    camera.position.copy(target);
+    controls.target.set(0,0,0);
+    state.flying=false; controls.enabled=true;
+  }
+}
+
+/* ============================================================
+   UI：面板渲染
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const detailPanel = $('detailPanel'), detailBody = $('detailBody');
+function openPanel(){ detailPanel.classList.add('open'); document.body.classList.add('panel-open'); }
+function closePanel(){ detailPanel.classList.remove('open'); document.body.classList.remove('panel-open'); }
+
+function renderFacts(){
+  detailBody.innerHTML = `
+   <div class="dp-kicker">Planet Profile</div>
+   <div class="dp-title">地球概况</div>
+   <div class="dp-sub">太阳系第三颗行星 · 已知唯一存在生命的星球</div>
+   <div class="dp-grid">${EARTH_FACTS.map(f=>`
+     <div class="dp-cell"><div class="k">${f.k}</div>
+       <div class="v">${f.v}<small>${f.u}</small></div></div>`).join('')}</div>
+   <div class="dp-note">数据口径：采用 IERS 与 NASA 公开行星参数，部分数值为教学常用近似值。</div>`;
+}
+
+/* ============ 太阳直射与四季面板 ============ */
+function renderSunPanel(){
+  detailBody.innerHTML = `
+   <div class="dp-kicker">Solar & Seasons</div>
+   <div class="dp-title">太阳直射与四季</div>
+   <div class="dp-sub">拖动日期或选择节气，观察直射点移动、昼夜长短与极昼极夜</div>
+
+   <div class="sun-date" style="margin-top:18px">
+     <div style="display:flex;justify-content:space-between;align-items:baseline">
+       <span class="k" style="color:var(--faint);font-size:11.5px">公历日期</span>
+       <b id="sunDate" style="font-family:var(--font-display);font-size:16px"></b>
+     </div>
+     <input type="range" id="sunSlider" min="1" max="365" value="${state.dayOfYear}"
+       style="width:100%;margin-top:12px" aria-label="日期">
+     <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--faint);margin-top:6px">
+       <span>1月</span><span>4月</span><span>7月</span><span>10月</span><span>12月</span></div>
+   </div>
+
+   <div class="sun-terms" style="display:flex;gap:6px;margin-top:16px">
+     ${KEY_TERMS.map(t=>`<button class="sun-term-btn" data-term="${t.n}"
+       style="flex:1;height:36px;border-radius:9px;border:1px solid var(--line);
+       background:rgba(255,255,255,.03);font-size:12.5px;transition:all .25s">${t.label}</button>`).join('')}
+   </div>
+
+   <div class="dp-grid" style="margin-top:16px">
+     <div class="dp-cell"><div class="k">所处节气</div><div class="v" id="sunTerm" style="font-size:15px"></div></div>
+     <div class="dp-cell"><div class="k">直射点纬度</div><div class="v" id="sunDec" style="font-size:15px"></div></div>
+   </div>
+
+   <div class="dp-section-title">代表纬度的昼长（北半球同口径）</div>
+   <table class="dp-table" style="table-layout:fixed">
+     <colgroup><col style="width:42%"><col style="width:30%"><col style="width:28%"></colgroup>
+     <thead><tr><th>纬度</th><th>昼长</th><th>夜长</th></tr></thead>
+     <tbody id="sunDayRows"></tbody>
+   </table>
+
+   <div class="dp-desc" id="sunExplain"></div>
+   <div class="dp-note">模型以 90°W 经线地方时正午为基准，直射点经度固定、只演示纬度随季节的往返；真实地球直射点还随自转在一天内横扫一周。</div>`;
+  updateSunReadout();
+}
+function updateSunReadout(){
+  const n=state.dayOfYear, dec=updateSun(n);
+  const md=dayToMonthDay(n), term=currentTerm(n);
+  const dateEl=$('sunDate'); if(dateEl) dateEl.textContent=`${md.month}月${md.day}日`;
+  const termEl=$('sunTerm'); if(termEl) termEl.textContent=term.name;
+  const decEl=$('sunDec');
+  if(decEl){
+    const abs=Math.abs(dec).toFixed(2);
+    decEl.textContent = Math.abs(dec)<0.05 ? '0°（赤道）' :
+      `${abs}°${dec>0?'N':'S'}`;
+  }
+  /* 滑块填充与节气按钮高亮 */
+  const slider=$('sunSlider');
+  if(slider){
+    slider.value=n;
+    slider.style.background=`linear-gradient(to right,var(--amber) 0%,var(--amber) ${(n/365*100).toFixed(1)}%,rgba(132,172,206,.2) ${(n/365*100).toFixed(1)}%)`;
+  }
+  document.querySelectorAll('.sun-term-btn').forEach(b=>{
+    const on=+b.dataset.term===n;
+    b.style.background=on?'var(--amber)':'rgba(255,255,255,.03)';
+    b.style.color=on?'#1a1206':'var(--muted)';
+    b.style.borderColor=on?'var(--amber)':'var(--line)';
+    b.style.fontWeight=on?'700':'400';
+  });
+  /* 昼夜长短表 */
+  const rows=[
+    {label:'赤道 0°',lat:0},{label:'北回归线 23.5°N',lat:23.5},
+    {label:'北极圈 66.5°N',lat:66.5},{label:'南极圈 66.5°S',lat:-66.5}];
+  const tb=$('sunDayRows');
+  if(tb){
+    tb.innerHTML=rows.map(r=>{
+      const dl=dayLength(r.lat,dec), nl=24-dl;
+      const dlTxt=dl>=24?'极昼':dl<=0?'极夜':fmtHour(dl);
+      const nlTxt=nl>=24?'极夜':nl<=0?'极昼':fmtHour(nl);
+      return `<tr><td>${r.label}</td><td class="num">${dlTxt}</td><td class="num">${nlTxt}</td></tr>`;
+    }).join('');
+  }
+  const ex=$('sunExplain');
+  if(ex){
+    let hint='';
+    if(Math.abs(dec)<0.05) hint='太阳直射赤道，全球昼夜等长，各为 12 小时，为春分或秋分。';
+    else if(dec>23) hint='太阳直射北回归线附近，北半球昼最长夜最短、北极圈内极昼，为夏至；南半球相反。';
+    else if(dec<-23) hint='太阳直射南回归线附近，北半球昼最短夜最长、北极圈内极夜，为冬至；南半球相反。';
+    else hint=dec>0?'直射点位于北半球并向北/南移动，北半球昼长夜短，为夏半年。':'直射点位于南半球，北半球昼短夜长，为冬半年。';
+    ex.textContent=hint;
+  }
+}
+
+/* ============ 城市气候面板（点击城市标签触发） ============ */
+function cityClimateList(climateName, exclude){
+  const items=CITY_LABELS.map((c,i)=>({c,i}))
+    .filter(x=>x.c.c===climateName && x.i!==exclude).slice(0,10);
+  if(!items.length)
+    return '<div style="padding:14px;color:var(--muted);font-size:12.5px">暂无同气候类型的其他收录城市</div>';
+  return `<div class="dp-list">${items.map(x=>`
+    <button class="dp-list-item" data-city="${x.i}">
+      <span class="sw" style="background:${findClimate(x.c.c).color}"></span>
+      <span class="nm">${x.c.name}<small style="display:block;color:var(--muted);font-size:11px;margin-top:3px">${x.c.country}</small></span>
+      <span class="meta">${x.c.c}</span>
+    </button>`).join('')}</div>`;
+}
+function renderCityClimate(idx){
+  const c=CITY_LABELS[idx], cm=findClimate(c.c);
+  detailBody.innerHTML=`
+   <div class="dp-kicker">City Climate</div>
+   <div class="dp-title">${c.name}</div>
+   <div class="dp-sub">${c.country} · 当地主导气候类型</div>
+   <div class="dp-grid">
+     <div class="dp-cell"><div class="k">气候类型</div>
+       <div class="v" style="font-size:13.5px"><span class="sw" style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${cm.color};margin-right:6px"></span>${cm.name}</div></div>
+     <div class="dp-cell"><div class="k">年均温</div><div class="v" style="font-size:13.5px">${cm.temp}</div></div>
+     <div class="dp-cell"><div class="k">年降水量</div><div class="v" style="font-size:12.5px">${cm.rain}</div></div>
+     <div class="dp-cell"><div class="k">地理坐标</div><div class="v" style="font-size:12px">${c.lat.toFixed(2)}, ${c.lon.toFixed(2)}</div></div>
+   </div>
+   <div class="dp-desc">${cm.desc}</div>
+   <div class="dp-section-title">同气候类型的其他城市</div>
+   ${cityClimateList(c.c,idx)}
+   <div class="dp-note">城市气候为该城市的主导气候类型；实际还受地形、距海远近与洋流影响，山区可能出现垂直分异。</div>`;
+}
+
+const beltFlyLat = [10,45,-45,75,-75];
+function renderClimatePanel(){
+  const belt = state.climateMode==='belt';
+  detailBody.innerHTML = `
+   <div class="dp-kicker">Climate Zones</div>
+   <div class="dp-title">${belt?'五带划分':'气候类型'}</div>
+   <div class="dp-sub">${belt?'以回归线、极圈为界的热量带':'按纬度对称分布的主要气候类型'}</div>
+   <div class="layer-toggle">
+     <button data-cm="belt" class="${belt?'active':''}">五带</button>
+     <button data-cm="type" class="${!belt?'active':''}">气候类型</button>
+   </div>
+   ${belt ? `
+     <div class="dp-list" style="margin-top:14px">
+       ${CLIMATE_BELTS.map((b,i)=>`
+         <button class="dp-list-item" data-act="flybelt" data-lat="${beltFlyLat[i]}">
+           <span class="sw" style="background:${b.color}"></span>
+           <span class="nm">${b.name}<small style="display:block;color:var(--muted);font-size:11px;margin-top:3px">${b.fact}</small></span>
+           <span class="meta">${b.latMin}°–${b.latMax}°</span>
+         </button>`).join('')}
+     </div>
+     <div class="dp-desc">${CLIMATE_BELTS.map(b=>`<b>${b.name}</b>：${b.desc}`).join('<br><br>')}</div>`
+   : `
+     <table class="dp-table" style="table-layout:fixed;margin-top:14px">
+       <colgroup><col style="width:40%"><col style="width:28%"><col style="width:32%"></colgroup>
+       <thead><tr><th>气候类型</th><th>年均温</th><th>年降水量</th></tr></thead>
+       <tbody>${CLIMATE_TYPES.map(t=>`
+         <tr><td><span class="sw" style="display:inline-block;width:9px;height:9px;border-radius:3px;background:${t.color};margin-right:6px"></span>${t.name}</td>
+         <td class="num">${t.temp}</td><td class="num">${t.rain}</td></tr>`).join('')}</tbody>
+     </table>
+     <div class="dp-desc">${CLIMATE_TYPES.map(t=>`<b>${t.name}</b>（${t.latMin}°–${t.latMax}°）：${t.desc}`).join('<br><br>')}</div>`}
+   <div class="dp-note">气候界线为理论模型，实际分布受海陆位置、地形抬升与洋流影响而偏移。</div>`;
+}
+
+function currentOverviewList(){
+  return `<div class="dp-list">${OCEAN_CURRENTS.map((c,i)=>`
+    <button class="dp-list-item" data-current="${i}">
+      <span class="sw" style="background:${c.kind==='warm'?'var(--warm)':'var(--cold)'}"></span>
+      <span class="nm">${c.name}</span>
+      <span class="meta">${c.kind==='warm'?'暖流':'寒流'}</span>
+    </button>`).join('')}</div>`;
+}
+function renderCurrentOverview(){
+  detailBody.innerHTML = `
+   <div class="dp-kicker">Ocean Currents</div>
+   <div class="dp-title">世界洋流系统</div>
+   <div class="dp-sub">共收录 ${OCEAN_CURRENTS.length} 条主要洋流 · 点击查看实测数据</div>
+   <div style="margin-top:14px;display:flex;gap:14px;font-size:12px;color:var(--muted)">
+     <span><span class="sw" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--warm);margin-right:5px"></span>暖流</span>
+     <span><span class="sw" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--cold);margin-right:5px"></span>寒流</span>
+   </div>
+   <div style="margin-top:12px">${currentOverviewList()}</div>`;
+}
+function renderCurrentDetail(idx){
+  const c = OCEAN_CURRENTS[idx];
+  const first=c.path[0], last=c.path[c.path.length-1];
+  const dirNS = last[0]-first[0] > 1 ? '自南向北' : last[0]-first[0] < -1 ? '自北向南' : '';
+  const dirEW = last[1]-first[1] > 1 ? '自西向东' : last[1]-first[1] < -1 ? '自东向西' : '';
+  detailBody.innerHTML = `
+   <div class="dp-kicker">Ocean Current</div>
+   <div class="dp-title">${c.name}</div>
+   <div style="margin-top:10px"><span class="tag ${c.kind}">${c.kind==='warm'?'暖流':'寒流'}</span></div>
+   <div class="dp-grid">
+     <div class="dp-cell"><div class="k">平均流速</div><div class="v" style="font-size:14px">${c.speed}</div></div>
+     <div class="dp-cell"><div class="k">表层水温</div><div class="v" style="font-size:14px">${c.temp}</div></div>
+     <div class="dp-cell"><div class="k">运动方向</div><div class="v" style="font-size:14px">${[dirNS,dirEW].filter(Boolean).join(' · ')||'环流'}</div></div>
+     <div class="dp-cell"><div class="k">路径节点</div><div class="v" style="font-size:14px">${c.path.length}<small> 个</small></div></div>
+   </div>
+   <div class="dp-desc">${c.desc}</div>
+   <div class="dp-section-title">全部洋流</div>
+   ${currentOverviewList()}`;
+}
+
+/* ============================================================
+   板块构造面板
+   ============================================================ */
+function plateOverviewList(){
+  return `<div class="dp-list">${TECTONIC_PLATES.map((p,i)=>`
+    <button class="dp-list-item" data-plate="${i}">
+      <span class="sw" style="background:${p.color}"></span>
+      <span class="nm">${p.name}</span>
+      <span class="meta">${p.area}</span>
+    </button>`).join('')}</div>`;
+}
+function boundaryList(){
+  return `<div class="dp-list">${PLATE_BOUNDARIES.map((b,i)=>`
+    <button class="dp-list-item" data-plateboundary="${i}">
+      <span class="sw" style="background:${BOUNDARY_TYPE[b.type].color}"></span>
+      <span class="nm">${b.name}</span>
+      <span class="meta">${BOUNDARY_TYPE[b.type].name}</span>
+    </button>`).join('')}</div>`;
+}
+function renderPlateOverview(){
+  detailBody.innerHTML=`
+   <div class="dp-kicker">Plate Tectonics</div>
+   <div class="dp-title">板块构造学说</div>
+   <div class="dp-sub">岩石圈分为六大板块，板块漂浮在软流层上运动，边界处地壳活动最活跃</div>
+   <div style="margin-top:14px;display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted)">
+     ${Object.values(BOUNDARY_TYPE).map(t=>`<span><span class="sw" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${t.color};margin-right:5px"></span>${t.name}</span>`).join('')}
+   </div>
+   <div class="dp-section-title">六大板块</div>
+   ${plateOverviewList()}
+   <div class="dp-section-title">主要板块边界</div>
+   ${boundaryList()}`;
+}
+function renderPlateDetail(idx){
+  const p=TECTONIC_PLATES[idx];
+  detailBody.innerHTML=`
+   <div class="dp-kicker">Tectonic Plate</div>
+   <div class="dp-title">${p.name}</div>
+   <div class="dp-grid">
+     <div class="dp-cell"><div class="k">构成特点</div><div class="v" style="font-size:14px">${p.area}</div></div>
+   </div>
+   <div class="dp-desc">${p.desc}</div>
+   <div class="dp-section-title">六大板块</div>
+   ${plateOverviewList()}`;
+}
+function renderBoundaryDetail(idx){
+  const b=PLATE_BOUNDARIES[idx],t=BOUNDARY_TYPE[b.type];
+  detailBody.innerHTML=`
+   <div class="dp-kicker">Plate Boundary</div>
+   <div class="dp-title">${b.name}</div>
+   <div style="margin-top:10px"><span class="tag" style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}55">${t.name}</span></div>
+   <div class="dp-desc">${t.desc}</div>
+   <div class="dp-section-title">主要板块边界</div>
+   ${boundaryList()}`;
+}
+
+/* ============================================================
+   地震带面板
+   ============================================================ */
+function quakeOverviewList(){
+  return `<div class="dp-list">${SEISMIC_BELTS.map((b,i)=>`
+    <button class="dp-list-item" data-quake="${i}">
+      <span class="sw" style="background:${b.color}"></span>
+      <span class="nm">${b.name}</span>
+      <span class="meta">点击查看</span>
+    </button>`).join('')}</div>`;
+}
+function renderQuakeOverview(){
+  detailBody.innerHTML=`
+   <div class="dp-kicker">Seismic Belts</div>
+   <div class="dp-title">世界主要地震带</div>
+   <div class="dp-sub">地震多沿板块边界成带分布，震中集中在少数活动地带</div>
+   <div class="dp-desc" style="margin-top:12px">地壳岩石在板块运动中积累应力，突然断裂释放能量形成地震。震级表示一次地震释放能量的大小（每差 1 级能量约差 32 倍），烈度表示地面受到的破坏程度。</div>
+   <div class="dp-section-title">主要地震带</div>
+   ${quakeOverviewList()}`;
+}
+function renderQuakeDetail(idx){
+  const b=SEISMIC_BELTS[idx];
+  detailBody.innerHTML=`
+   <div class="dp-kicker">Seismic Belt</div>
+   <div class="dp-title">${b.name}</div>
+   <div class="dp-grid">
+     <div class="dp-cell"><div class="k">地震占比</div><div class="v" style="font-size:13px">${b.share}</div></div>
+     <div class="dp-cell"><div class="k">强度特点</div><div class="v" style="font-size:13px">${b.mag}</div></div>
+   </div>
+   <div class="dp-cell" style="margin-top:10px"><div class="k">典型案例</div><div class="v" style="font-size:13px">${b.cases}</div></div>
+   <div class="dp-desc">${b.desc}</div>
+   <div class="dp-section-title">主要地震带</div>
+   ${quakeOverviewList()}`;
+}
+
+function landmarkOverviewList(active=-1){
+  return `<div class="dp-list">${LANDMARKS.map((l,i)=>`
+    <button class="dp-list-item${i===active?' active':''}" data-landmark="${i}">
+      <img class="thumb" src="${LANDMARK_IMGS[i]||''}" alt="${l.name}实景" loading="lazy" decoding="async">
+      <span class="nm">${l.name}<small style="display:block;color:var(--muted);font-size:11px;margin-top:3px">${l.city} · ${l.country}</small></span>
+      <span class="meta">${l.height} m</span>
+    </button>`).join('')}</div>`;
+}
+function renderLandmarkOverview(){
+  detailBody.innerHTML = `
+   <div class="dp-kicker">Landmarks</div>
+   <div class="dp-title">世界特色建筑</div>
+   <div class="dp-sub">共收录 ${LANDMARKS.length} 处地标 · 点击飞行定位</div>
+   <div style="margin-top:12px">${landmarkOverviewList()}</div>`;
+}
+function renderLandmarkDetail(idx){
+  const lm = LANDMARKS[idx];
+  const photo = LANDMARK_IMGS[idx];
+  detailBody.innerHTML = `
+   <div class="dp-kicker">Landmark</div>
+   <div class="dp-title">${lm.name}</div>
+   <div class="dp-sub">${lm.country} · ${lm.city}</div>
+   ${photo?`<img class="dp-photo" src="${photo}" alt="${lm.name}实景" decoding="async">`:''}
+   <div class="dp-grid">
+     <div class="dp-cell"><div class="k">建成时间</div><div class="v" style="font-size:13.5px">${lm.year}</div></div>
+     <div class="dp-cell"><div class="k">建筑高度</div><div class="v">${lm.height}<small> m</small></div></div>
+     <div class="dp-cell"><div class="k">建筑风格</div><div class="v" style="font-size:13.5px">${lm.style}</div></div>
+     <div class="dp-cell"><div class="k">地理坐标</div><div class="v" style="font-size:12.5px">${lm.lat.toFixed(2)}, ${lm.lon.toFixed(2)}</div></div>
+   </div>
+   <div class="dp-desc">${lm.desc}</div>
+   <div class="dp-section-title">其他建筑</div>
+   ${landmarkOverviewList(idx)}`;
+  detailBody.scrollTop = 0;
+}
+
+function seismicWaveDiagram(){
+  const sPts=[];
+  for(let j=0;j<=40;j++){
+    const t=j/40;
+    const x=160+45*t, y=110+45*t;
+    const off=Math.sin(t*7*Math.PI)*8;
+    sPts.push(`${(x-off*0.707).toFixed(1)},${(y+off*0.707).toFixed(1)}`);
+  }
+  const pYs=[130,145,162,177,205,220,237,265,280,297,315,335,350,365];
+  return `<div class="wave-diagram"><svg viewBox="0 0 320 430" role="img" aria-label="纵波和横波传播示意图">
+    <defs>
+      <marker id="pArrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+        <path d="M0,0 L8,4 L0,8 z" fill="#53d9a8"/>
+      </marker>
+    </defs>
+    <circle cx="160" cy="250" r="140" fill="none" stroke="#7d8fa3" stroke-width="2"/>
+    <circle cx="160" cy="250" r="130" fill="none" stroke="#8fd0ff" stroke-dasharray="4 4"/>
+    <circle cx="160" cy="250" r="50" fill="none" stroke="#ffd25c" stroke-width="2"/>
+    <circle cx="160" cy="250" r="22" fill="none" stroke="#f3e6c4"/>
+    <line x1="160" y1="110" x2="160" y2="390" stroke="#53d9a8" stroke-width="2.5" marker-end="url(#pArrow)"/>
+    ${pYs.map(y=>`<circle cx="160" cy="${y}" r="4" fill="#53d9a8"/>`).join('')}
+    <path d="M${sPts.join(' L')}" fill="none" stroke="#ff8a5c" stroke-width="2.5"/>
+    <circle cx="205" cy="155" r="6" fill="none" stroke="#ff5252" stroke-width="2"/>
+    <circle cx="160" cy="110" r="6" fill="#ffd25c"/>
+    <text x="132" y="98" fill="#ffd25c" font-size="13">震源</text>
+    <text x="50" y="126" fill="#8fd0ff" font-size="12">莫霍界面</text>
+    <text x="214" y="255" fill="#ffd25c" font-size="12">古登堡界面</text>
+    <text x="214" y="150" fill="#ff8a5c" font-size="12">S横波</text>
+    <text x="214" y="166" fill="#ff8a5c" font-size="11">垂直振动</text>
+    <text x="214" y="181" fill="#ff8a5c" font-size="11">到此停止</text>
+    <text x="18" y="410" fill="#53d9a8" font-size="12">P纵波：压缩/拉伸，可穿过外核</text>
+  </svg></div>`;
+}
+function renderLayerPanel(sel){
+  detailBody.innerHTML = `
+   <div class="dp-kicker">Earth Interior</div>
+   <div class="dp-title">地球内部圈层</div>
+   <div class="dp-sub">拖动底部滑块查看爆炸拆解 · 点击圈层展开参数</div>
+   ${EARTH_LAYERS.map((l,i)=>`
+     <div class="dp-layer-row ${i===sel?'sel':''}" data-layerrow="${i}" style="margin-top:12px">
+       <div class="dp-layer-head">
+         <span class="dp-layer-sw" style="background:${l.color}"></span>
+         <span class="dp-layer-name">${l.name}</span>
+         <span class="dp-layer-depth">${layerDepthText(l)}</span>
+       </div>
+       <div class="dp-desc" style="margin-top:8px;color:var(--muted)">半径 ${l.rInner}–${l.rOuter} km</div>
+       <div class="dp-layer-facts">
+         <div class="dp-cell"><div class="k">温度</div><div class="v">${l.temp}</div></div>
+         <div class="dp-cell"><div class="k">状态</div><div class="v" style="font-size:13px">${l.state}</div></div>
+         <div class="dp-cell"><div class="k">密度</div><div class="v" style="font-size:12.5px">${l.density}</div></div>
+         <div class="dp-cell"><div class="k">主要成分</div><div class="v" style="font-size:11.5px">${l.composition}</div></div>
+       </div>
+       <div class="dp-desc" style="margin-top:10px">${l.desc}</div>
+     </div>`).join('')}
+   <div class="dp-section-title">分界面</div>
+   ${EARTH_INTERFACES.map(inf=>`
+     <div class="dp-layer-row static" style="margin-top:10px">
+       <div class="dp-layer-head">
+         <span class="dp-layer-sw" style="background:${inf.color}"></span>
+         <span class="dp-layer-name">${inf.name}</span>
+         <span class="dp-layer-depth">地下 ${depthFromRadius(inf.radiusKm)} km</span>
+       </div>
+       <div class="dp-desc" style="margin-top:8px;color:var(--muted)">半径 ${inf.radiusKm} km</div>
+       <div class="dp-desc" style="margin-top:8px">${inf.desc}</div>
+     </div>`).join('')}
+   <div class="dp-section-title">地震波演示</div>
+   ${seismicWaveDiagram()}
+   ${SEISMIC_WAVES.map(w=>`
+     <div class="dp-wave-row">
+       <span class="dp-wave-dot" style="background:${w.color}"></span>
+       <div class="dp-wave-body">
+         <div class="dp-wave-name">${w.name}<small>${w.state} · ${w.speed}</small></div>
+         <div class="dp-desc" style="margin-top:6px">${w.desc}</div>
+       </div>
+     </div>`).join('')}
+   <div class="dp-note">示意说明：地壳真实厚度不足半径的 1%，模型中已放大显示；各圈层半径、温度与密度为真实数据。绿色纵波可穿过液态外核，橙色横波在古登堡界面处停止。</div>`;
+}
+
+/* ============================================================
+   UI：图层切换
+   ============================================================ */
+function switchLayer(name){
+  state.layer = name;
+  document.querySelectorAll('.layer-btn').forEach(b=>
+    b.classList.toggle('active', b.dataset.layer===name));
+  if(climateGroup) climateGroup.visible = false;
+  if(currentGroup) currentGroup.visible = false;
+  if(landmarkGroup) landmarkGroup.visible = false;
+  if(plateGroup){ plateGroup.visible=false; plateLabelObjs.forEach(L=>L.obj.visible=false); }
+  if(quakeGroup){ quakeGroup.visible=false; quakeLabelObjs.forEach(L=>L.obj.visible=false); }
+  selectedMarker = -1;
+  $('explodeCtl').classList.remove('show');
+
+  if(name==='solar'){
+    enterSolarMode();
+    renderSolarPanel(-1); openPanel();
+    return;
+  }
+  if(solarSystemGroup&&solarSystemGroup.visible) exitSolarMode();
+  if(name==='layer'){
+    enterLayerMode();
+    $('explodeSlider').value=0;
+    $('explodeVal').textContent='0%';
+    setExplode(0);
+    renderLayerPanel(0); openPanel();
+    $('explodeCtl').classList.add('show');
+    return;
+  }
+  if(layerGroup.visible) exitLayerMode();
+  if(name==='natural'){ closePanel(); }
+  if(name==='climate'){ climateGroup.visible=true; renderClimatePanel(); openPanel(); }
+  if(name==='current'){ currentGroup.visible=true; renderCurrentOverview(); openPanel(); }
+  if(name==='landmark'){ landmarkGroup.visible=true; renderLandmarkOverview(); openPanel(); }
+  if(name==='plate'){ plateGroup.visible=true; plateLabelObjs.forEach(L=>L.obj.visible=true);
+    renderPlateOverview(); openPanel(); }
+  if(name==='quake'){ quakeGroup.visible=true; quakeLabelObjs.forEach(L=>L.obj.visible=true);
+    renderQuakeOverview(); openPanel(); }
+}
+
+/* ============================================================
+   UI：3D 拾取与悬浮提示
+   ============================================================ */
+const tooltip = $('tooltip');
+let downX=0, downY=0;
+function setPointer(e){
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((e.clientX-rect.left)/rect.width)*2 - 1;
+  pointer.y = -((e.clientY-rect.top)/rect.height)*2 + 1;
+}
+function showTooltip(e, html){
+  tooltip.innerHTML = html;
+  tooltip.classList.add('show');
+  const x = Math.min(e.clientX+14, window.innerWidth-210);
+  const y = Math.min(e.clientY+14, window.innerHeight-70);
+  tooltip.style.left = x+'px'; tooltip.style.top = y+'px';
+}
+function handleHover(e){
+  setPointer(e);
+  raycaster.setFromCamera(pointer, camera);
+  renderer.domElement.style.cursor = 'grab';
+  if(state.layer==='solar'){
+    if(sunLayerMode){
+      const hit=raycaster.intersectObjects(sunLayerMeshes.map(m=>m.group),true)[0];
+      if(hit){let obj=hit.object;
+        while(obj&&obj.userData.type!=='sunLayer')obj=obj.parent;
+        if(obj){renderer.domElement.style.cursor='pointer';
+          showTooltip(e,`<b>${SUN_LAYERS[obj.userData.idx].name}</b><small>点击查看该层</small>`);}
+      }else tooltip.classList.remove('show');
+      return;
+    }
+    const bodies=solarPlanetObjs.map(o=>o.body);
+    const sun=solarSystemGroup.userData.sun;
+    const hit=raycaster.intersectObjects([sun,...bodies,...sunActivityMarkers],true)[0];
+    if(hit){
+      let obj=hit.object;
+      while(obj&&!obj.userData.type)obj=obj.parent;
+      if(obj&&obj.userData.type==='solarBody'){
+        renderer.domElement.style.cursor='pointer';
+        const idx=obj.userData.idx;
+        if(idx===-1)showTooltip(e,'<b>太阳</b><small>中心天体 · 点击查看结构与活动</small>');
+        else if(idx===100)showTooltip(e,'<b>月球</b><small>地球天然卫星 · 点击查看</small>');
+        else{const p=PLANETS[idx];showTooltip(e,`<b>${p.name}</b><small>${p.period} · 点击查看</small>`);}
+      }else if(obj&&obj.userData.type==='solarActivity'){
+        renderer.domElement.style.cursor='pointer';
+        const a=SOLAR_ACTIVITIES[obj.userData.act];
+        showTooltip(e,`<b>${a.name}</b><small>${a.layer} · 点击查看</small>`);
+      }
+    } else tooltip.classList.remove('show');
+    return;
+  }
+  if(state.layer==='landmark'){
+    const hit = raycaster.intersectObjects(markerMeshes,false)[0];
+    if(hit){
+      hoveredMarker = hit.userData.idx;
+      const lm = LANDMARKS[hoveredMarker];
+      renderer.domElement.style.cursor='pointer';
+      showTooltip(e,`<b>${lm.name}</b><small>${lm.city} · ${lm.country} · 点击查看</small>`);
+    } else { hoveredMarker=-1; tooltip.classList.remove('show'); }
+  } else if(state.layer==='current'){
+    const hit = raycaster.intersectObjects(currentMeshes,false)[0];
+    if(hit){
+      const c = OCEAN_CURRENTS[hit.userData.idx];
+      renderer.domElement.style.cursor='pointer';
+      showTooltip(e,`<b>${c.name}</b><small>${c.kind==='warm'?'暖流':'寒流'} · ${c.speed} · 点击查看</small>`);
+    } else tooltip.classList.remove('show');
+  } else if(state.layer==='plate'){
+    const hit = raycaster.intersectObjects(plateMeshes,false)[0];
+    if(hit){
+      const b=PLATE_BOUNDARIES[hit.userData.idx],t=BOUNDARY_TYPE[b.type];
+      renderer.domElement.style.cursor='pointer';
+      showTooltip(e,`<b>${b.name}</b><small>${t.name} · 点击查看</small>`);
+    } else tooltip.classList.remove('show');
+  } else if(state.layer==='quake'){
+    const hit = raycaster.intersectObjects(quakeMeshes,false)[0];
+    if(hit){
+      const b=SEISMIC_BELTS[hit.userData.idx];
+      renderer.domElement.style.cursor='pointer';
+      showTooltip(e,`<b>${b.name}</b><small>点击查看详情</small>`);
+    } else tooltip.classList.remove('show');
+  } else tooltip.classList.remove('show');
+}
+function handlePick(e){
+  setPointer(e);
+  raycaster.setFromCamera(pointer, camera);
+  if(state.layer==='solar'){
+    if(sunLayerMode){
+      const hit=raycaster.intersectObjects(sunLayerMeshes.map(m=>m.group),true)[0];
+      if(hit){let obj=hit.object;
+        while(obj&&obj.userData.type!=='sunLayer')obj=obj.parent;
+        if(obj)renderSunLayerDetail(obj.userData.idx);
+      }
+      return;
+    }
+    const bodies=solarPlanetObjs.map(o=>o.body);
+    const sun=solarSystemGroup.userData.sun;
+    const hit=raycaster.intersectObjects([sun,...bodies,...sunActivityMarkers],true)[0];
+    if(hit){
+      let obj=hit.object;
+      while(obj&&!obj.userData.type)obj=obj.parent;
+      if(obj&&obj.userData.type==='solarBody'){
+        const idx=obj.userData.idx;
+        if(idx===100)renderSolarPanel(100);
+        else renderSolarPanel(idx);
+        openPanel();
+      }else if(obj&&obj.userData.type==='solarActivity'){
+        renderSolarPanel(111);openPanel();
+        setTimeout(()=>renderActDetail(obj.userData.act),0);
+      }
+    }
+    return;
+  }
+  if(state.layer==='landmark'){
+    const hit = raycaster.intersectObjects(markerMeshes,false)[0];
+    if(hit){
+      const idx = hit.userData.idx;
+      selectedMarker = idx;
+      const lm = LANDMARKS[idx];
+      flyTo(lm.lat,lm.lon); renderLandmarkDetail(idx); openPanel();
+    }
+  } else if(state.layer==='current'){
+    const hit = raycaster.intersectObjects(currentMeshes,false)[0];
+    if(hit){
+      const idx = hit.userData.idx, c=OCEAN_CURRENTS[idx];
+      const mid = c.path[Math.floor(c.path.length/2)];
+      flyTo(mid[0],mid[1]); renderCurrentDetail(idx); openPanel();
+    }
+  } else if(state.layer==='plate'){
+    const hit = raycaster.intersectObjects(plateMeshes,false)[0];
+    if(hit){
+      const idx=hit.userData.idx,b=PLATE_BOUNDARIES[idx];
+      const mid=b.path[Math.floor(b.path.length/2)];
+      flyTo(mid[0],mid[1]); renderBoundaryDetail(idx); openPanel();
+    }
+  } else if(state.layer==='quake'){
+    const hit = raycaster.intersectObjects(quakeMeshes,false)[0];
+    if(hit){
+      const idx=hit.userData.idx,b=SEISMIC_BELTS[idx];
+      const mid=b.paths[0][Math.floor(b.paths[0].length/2)];
+      flyTo(mid[0],mid[1]); renderQuakeDetail(idx); openPanel();
+    }
+  }
+}
+
+/* ============================================================
+   UI：坐标读数（屏幕中心射线与地球交点）
+   ============================================================ */
+const centerPt = new THREE.Vector2(0,0);
+const tmpHit = new THREE.Vector3();
+function updateCoordReadout(){
+  const latV=$('latVal'), lonV=$('lonVal');
+  if(state.layer==='layer'||!earthMesh.visible){ latV.textContent='--'; lonV.textContent='--'; return; }
+  raycaster.setFromCamera(centerPt,camera);
+  const hit = raycaster.intersectObject(earthMesh,false)[0];
+  if(hit){
+    tmpHit.copy(hit.point);
+    const {lat,lon} = vecToLatLon(tmpHit);
+    latV.textContent = fmtDMS(lat,true);
+    lonV.textContent = fmtDMS(lon,false);
+  } else { latV.textContent='--'; lonV.textContent='--'; }
+}
+
+/* ============================================================
+   UI：搜索
+   ============================================================ */
+const searchInput=$('searchInput'), searchResults=$('searchResults'), searchBox=$('searchBox');
+const searchPool = [
+  ...LANDMARKS.map((l,i)=>({name:l.name,meta:`${l.country}·${l.city}`,kind:'建筑',dot:'#38d6bb',
+    act(){ switchLayer('landmark'); selectedMarker=i; flyTo(l.lat,l.lon); renderLandmarkDetail(i); }})),
+  ...OCEAN_CURRENTS.map((c,i)=>({name:c.name,meta:c.kind==='warm'?'暖流':'寒流',kind:'洋流',
+    dot:c.kind==='warm'?'#ff7a4d':'#53b7e8',
+    act(){ switchLayer('current'); const mid=c.path[Math.floor(c.path.length/2)];
+      flyTo(mid[0],mid[1]); renderCurrentDetail(i); }}))
+];
+searchInput.addEventListener('input',()=>{
+  const q = searchInput.value.trim();
+  searchBox.classList.toggle('has-val',!!q);
+  if(!q){ searchResults.classList.remove('open'); return; }
+  const hits = searchPool.filter(x=>x.name.includes(q)||x.meta.includes(q)).slice(0,8);
+  searchResults.innerHTML = hits.length ? hits.map(h=>`
+    <button class="sr-item" data-search="${searchPool.indexOf(h)}">
+      <span class="sr-dot" style="background:${h.dot}"></span>
+      <span><span class="sr-name">${h.name}</span><span class="sr-meta" style="display:block">${h.meta}</span></span>
+      <span class="sr-kind">${h.kind}</span>
+    </button>`).join('') : `<div style="padding:16px;color:var(--muted);font-size:12.5px">未找到“${q}”相关结果</div>`;
+  searchResults.classList.add('open');
+});
+$('searchClear').addEventListener('click',()=>{
+  searchInput.value=''; searchBox.classList.remove('has-val');
+  searchResults.classList.remove('open'); searchInput.focus();
+});
+document.addEventListener('pointerdown',e=>{
+  if(!searchBox.contains(e.target)) searchResults.classList.remove('open');
+});
+
+/* ============================================================
+   UI：Toast
+   ============================================================ */
+function toast(msg){
+  const el = document.createElement('div');
+  el.className='toast-msg'; el.textContent=msg;
+  $('toast').appendChild(el);
+  setTimeout(()=>{ el.classList.add('out'); setTimeout(()=>el.remove(),300); },2200);
+}
+
+/* ============================================================
+   地理知识库：渲染与交互
+   ============================================================ */
+const KB_ICONS={
+  map:'<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/>',
+  orbit:'<circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="10" ry="4.5"/>',
+  cloud:'<path d="M17.5 18a4.5 4.5 0 0 0 .5-9 6 6 0 0 0-11.5 1.5A4 4 0 0 0 7 18z"/>',
+  climate:'<path d="M3 14h4l2-3 3 5 2-4 2 2h5"/><path d="M4 19h16"/>',
+  water:'<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',
+  mountain:'<path d="m3 20 6-11 4 6 3-4 5 9z"/><circle cx="17" cy="6" r="2"/>',
+  leaf:'<path d="M5 19c0-8 6-14 14-14 0 8-6 14-14 14z"/><path d="M5 19c3-5 6-8 10-10"/>',
+  people:'<circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5a3 3 0 0 1 0 5.8M18 20a5.5 5.5 0 0 0-3-4.9"/>',
+  industry:'<path d="M3 21V10l6 3V10l6 3V7l6 3v11z"/><path d="M7 17h.01M12 17h.01M17 17h.01"/>',
+  disaster:'<path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17.5h.01"/>',
+  shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/>',
+  china:'<path d="M3 18h6v-5h6V8h6"/><path d="M3 21h18"/>',
+  method:'<path d="M8 7h13M8 12h13M8 17h13"/><circle cx="4" cy="7" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="17" r="1.2"/>',
+  globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/>'
+};
+function kbSvg(name){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'+(KB_ICONS[name]||KB_ICONS.globe)+'</svg>';}
+function kbCard(it){
+  const pts=(it.p&&it.p.length)?'<div class="kb-points"><ul>'+it.p.map(x=>'<li>'+x+'</li>').join('')+'</ul></div>':'';
+  return '<div class="kb-card"><h3>'+it.t+'</h3><div class="kb-d">'+it.d+'</div>'+pts+'</div>';
+}
+function renderKbCats(){
+  $('kbCats').innerHTML=GEO_KB.map((c,i)=>
+    '<button class="kb-cat'+(i===kbActiveCat?' active':'')+'" data-kbcat="'+i+'">'+kbSvg(c.icon)+
+    '<span>'+c.cat+'</span><span class="cnt">'+c.items.length+'</span></button>').join('');
+}
+function renderKbContent(){
+  const q=kbQuery.trim().toLowerCase();
+  let html='';
+  if(q){
+    const groups=[];
+    GEO_KB.forEach(c=>{
+      const hits=c.items.filter(it=>it.t.toLowerCase().includes(q)||it.d.toLowerCase().includes(q)||
+        it.p.some(x=>x.toLowerCase().includes(q)));
+      if(hits.length) groups.push({cat:c.cat,items:hits});
+    });
+    if(!groups.length) html='<div class="kb-empty">未找到与“'+kbQuery+'”相关的知识点</div>';
+    else groups.forEach(g=>{html+='<div class="kb-grid"><div class="kb-sec-label">'+g.cat+'</div>'+
+      g.items.map(kbCard).join('')+'</div>';});
+  } else {
+    html='<div class="kb-grid">'+GEO_KB[kbActiveCat].items.map(kbCard).join('')+'</div>';
+  }
+  $('kbContent').innerHTML=html;
+}
+function openKb(){
+  kbOpen=true;
+  $('kbOverlay').classList.add('open');
+  $('kbOverlay').setAttribute('aria-hidden','false');
+  renderKbCats();renderKbContent();
+}
+function closeKb(){
+  kbOpen=false;
+  $('kbOverlay').classList.remove('open');
+  $('kbOverlay').setAttribute('aria-hidden','true');
+}
+
+/* ============================================================
+   UI：事件绑定
+   ============================================================ */
+function bindAll(){
+  document.querySelectorAll('.layer-btn').forEach(b=>
+    b.addEventListener('click',()=>switchLayer(b.dataset.layer)));
+
+  renderer.domElement.addEventListener('pointerdown',e=>{downX=e.clientX;downY=e.clientY;});
+  renderer.domElement.addEventListener('pointermove',handleHover);
+  renderer.domElement.addEventListener('pointerup',e=>{
+    if(Math.hypot(e.clientX-downX,e.clientY-downY)>7) return;
+    handlePick(e);
+  });
+
+  detailBody.addEventListener('click',e=>{
+    const cm = e.target.closest('[data-cm]');
+    if(cm){ state.climateMode=cm.dataset.cm; renderClimatePanel(); rebuildClimate(); return; }
+    const fb = e.target.closest('[data-act="flybelt"]');
+    if(fb){ flyTo(parseFloat(fb.dataset.lat), isMobile?10:0); return; }
+    const ci = e.target.closest('[data-current]');
+    if(ci){ const i=+ci.dataset.current, c=OCEAN_CURRENTS[i];
+      const mid=c.path[Math.floor(c.path.length/2)];
+      flyTo(mid[0],mid[1]); renderCurrentDetail(i); return; }
+    const li = e.target.closest('[data-landmark]');
+    if(li){ const i=+li.dataset.landmark, lm=LANDMARKS[i];
+      selectedMarker=i; flyTo(lm.lat,lm.lon); renderLandmarkDetail(i); return; }
+    const plb = e.target.closest('[data-plate]');
+    if(plb){ const i=+plb.dataset.plate,p=TECTONIC_PLATES[i];
+      flyTo(p.label[0],p.label[1]); renderPlateDetail(i); return; }
+    const pbd = e.target.closest('[data-plateboundary]');
+    if(pbd){ const i=+pbd.dataset.plateboundary,b=PLATE_BOUNDARIES[i];
+      const mid=b.path[Math.floor(b.path.length/2)];
+      flyTo(mid[0],mid[1]); renderBoundaryDetail(i); return; }
+    const qkb = e.target.closest('[data-quake]');
+    if(qkb){ const i=+qkb.dataset.quake,b=SEISMIC_BELTS[i];
+      const mid=b.paths[0][Math.floor(b.paths[0].length/2)];
+      flyTo(mid[0],mid[1]); renderQuakeDetail(i); return; }
+    const lr = e.target.closest('[data-layerrow]');
+    if(lr){ renderLayerPanel(+lr.dataset.layerrow); return; }
+    const cc = e.target.closest('[data-city]');
+    if(cc){ const i=+cc.dataset.city, c=CITY_LABELS[i];
+      flyTo(c.lat,c.lon); renderCityClimate(i); return; }
+    const st = e.target.closest('[data-term]');
+    if(st){ state.dayOfYear=+st.dataset.term; updateSunReadout(); return; }
+    const si = e.target.closest('[data-search]');
+    if(si){ searchPool[+si.dataset.search].act(); searchResults.classList.remove('open'); return; }
+    const pl = e.target.closest('[data-planet]');
+    if(pl){ renderSolarPanel(+pl.dataset.planet); return; }
+    const sv2 = e.target.closest('[data-solarview]');
+    if(sv2){ renderSolarPanel(+sv2.dataset.solarview); return; }
+    const sl2 = e.target.closest('[data-sunlayer]');
+    if(sl2){ renderSunLayerDetail(+sl2.dataset.sunlayer); return; }
+    const ad2 = e.target.closest('[data-actdetail]');
+    if(ad2){ renderActDetail(+ad2.dataset.actdetail); return; }
+    if(e.target.closest('#eclipseDemo')){
+      demoEclipse(solarCurrentIdx===120?'solar':'lunar');return;
+    }
+    if(e.target.closest('#solarPlay')){
+      solarPaused=!solarPaused;
+      renderSolarPanel(solarCurrentIdx);
+      return;
+    }
+  });
+  /* 日期滑块（动态生成，input 事件委托 + rAF 节流） */
+  let sunRaf=0;
+  detailBody.addEventListener('input',e=>{
+    if(e.target.id==='solarSpeedSlider'){
+      solarSpeed=+e.target.value;
+      const sv=detailBody.querySelector('.solar-speed .sv');
+      if(sv)sv.textContent=solarSpeed.toFixed(1)+'×';
+      return;
+    }
+    if(e.target.id==='sunExplodeSlider'){
+      const v=+e.target.value/100;
+      setSunExplode(v);
+      const lbl=e.target.parentElement.querySelector('.sv');
+      if(lbl)lbl.textContent=Math.round(v*100)+'%';
+      return;
+    }
+    if(e.target.id!=='sunSlider') return;
+    state.dayOfYear=+e.target.value;
+    if(sunRaf) return;
+    sunRaf=requestAnimationFrame(()=>{sunRaf=0; updateSunReadout();});
+  });
+
+  /* 缩放与复位：导航式平滑过渡，可被手动拖动立即打断 */
+  function tweenRadius(nd){
+    const d=camera.position.length();
+    if(Math.abs(nd-d)<0.001)return;
+    if(reducedMotion||!window.gsap){camera.position.setLength(nd);return;}
+    const proxy={r:d};
+    gsap.killTweensOf(camera.position);
+    gsap.to(proxy,{r:nd,duration:0.42,ease:'power2.out',
+      onUpdate(){camera.position.setLength(proxy.r);}});
+  }
+  function dolly(f){
+    const nd=THREE.MathUtils.clamp(camera.position.length()*f,controls.minDistance,controls.maxDistance);
+    tweenRadius(nd);
+  }
+  $('zoomIn').addEventListener('click',()=>dolly(0.78));
+  $('zoomOut').addEventListener('click',()=>dolly(1.28));
+  $('resetView').addEventListener('click',()=>{
+    state.flying=true; controls.enabled=false;
+    if(window.gsap&&!reducedMotion){
+      gsap.killTweensOf(camera.position);
+      gsap.killTweensOf(controls.target);
+      gsap.timeline({onComplete(){state.flying=false;controls.enabled=true;}})
+        .to(controls.target,{x:0,y:0,z:0,duration:1.05,ease:CAM_EASE},0)
+        .to(camera.position,{x:DEFAULT_CAMERA.x,y:DEFAULT_CAMERA.y,z:DEFAULT_CAMERA.z,duration:1.05,ease:CAM_EASE},0);
+    } else { camera.position.copy(DEFAULT_CAMERA); state.flying=false; controls.enabled=true; }
+  });
+
+  /* 双击/双击屏幕快速放大，键盘快捷键便于桌面操作 */
+  renderer.domElement.addEventListener('dblclick',()=>dolly(0.72));
+  document.addEventListener('keydown',e=>{
+    const tag=(document.activeElement&&document.activeElement.tagName||'').toLowerCase();
+    if(['input','textarea'].includes(tag)||document.activeElement?.isContentEditable)return;
+    if(e.key==='+'||e.key==='=')dolly(0.78);
+    else if(e.key==='-')dolly(1.28);
+    else if(e.key==='0'||e.key==='r'||e.key==='R')$('resetView').click();
+  });
+
+  /* 自动旋转 */
+  $('autoRotateBtn').addEventListener('click',function(){
+    controls.autoRotate = !controls.autoRotate;
+    this.classList.toggle('active',controls.autoRotate);
+    toast(controls.autoRotate?'已开启自动旋转':'已关闭自动旋转');
+  });
+
+  /* 地球概况 */
+  $('factsBtn').addEventListener('click',()=>{
+    if(state.layer==='layer') switchLayer('natural');
+    renderFacts(); openPanel();
+  });
+
+  /* 太阳直射与四季 */
+  $('sunBtn').addEventListener('click',()=>{
+    if(state.layer==='layer') switchLayer('natural');
+    renderSunPanel(); openPanel();
+  });
+
+  $('detailClose').addEventListener('click',closePanel);
+
+  /* 圈层拆解滑块 */
+  const slider=$('explodeSlider');
+  slider.addEventListener('input',()=>{
+    const v=+slider.value/100;
+    setExplode(v);
+    $('explodeVal').textContent=slider.value+'%';
+    slider.style.background=`linear-gradient(to right,var(--teal) 0%,var(--teal) ${slider.value}%,rgba(132,172,206,.2) ${slider.value}%)`;
+  });
+
+  /* 地理知识库 */
+  $('kbBtn').addEventListener('click',openKb);
+  $('kbClose').addEventListener('click',closeKb);
+  $('kbCats').addEventListener('click',e=>{
+    const b=e.target.closest('[data-kbcat]');
+    if(!b) return;
+    kbActiveCat=+b.dataset.kbcat;kbQuery='';$('kbSearch').value='';
+    renderKbCats();renderKbContent();
+    $('kbContent').scrollTop=0;
+  });
+  $('kbContent').addEventListener('click',e=>{
+    const card=e.target.closest('.kb-card');
+    if(card) card.classList.toggle('open');
+  });
+  $('kbSearch').addEventListener('input',e=>{
+    kbQuery=e.target.value;renderKbContent();
+  });
+  /* 设置：滑动/缩放灵敏度无极调节 */
+  const setModal=$('settingsModal');
+  $('settingsBtn').addEventListener('click',()=>setModal.classList.add('open'));
+  $('setClose').addEventListener('click',()=>setModal.classList.remove('open'));
+  setModal.addEventListener('click',e=>{ if(e.target===setModal) setModal.classList.remove('open'); });
+
+  const qualityBtns=document.querySelectorAll('.quality-opt');
+  const syncQualityUI=()=>qualityBtns.forEach(btn=>
+    btn.classList.toggle('active',btn.dataset.quality===qualityMode));
+  qualityBtns.forEach(btn=>btn.addEventListener('click',()=>{
+    qualityMode=btn.dataset.quality;
+    try{localStorage.setItem('geo_quality',qualityMode);}catch(e){}
+    applyRenderQuality();syncQualityUI();
+    toast(qualityMode==='hd2k'?'已切换到 2K 高清模式':'已切换到均衡模式');
+  }));
+  syncQualityUI();
+
+  const rotS=$('rotSens'), zoomS=$('zoomSens');
+  const paintFill=el=>el.style.setProperty('--fill',((el.value-el.min)/(el.max-el.min)*100)+'%');
+  const syncSens=()=>{
+    baseRotSpeed=+rotS.value; baseZoomSpeed=+zoomS.value;
+    applySens();
+    $('rotVal').textContent=(+rotS.value).toFixed(2);
+    $('zoomVal').textContent=(+zoomS.value).toFixed(2);
+    paintFill(rotS);paintFill(zoomS);
+    try{localStorage.setItem('geo_sens',JSON.stringify({r:+rotS.value,z:+zoomS.value}));}catch(e){}
+  };
+  rotS.addEventListener('input',syncSens);
+  zoomS.addEventListener('input',syncSens);
+  $('setReset').addEventListener('click',()=>{
+    rotS.value=DEFAULT_SENS.r;zoomS.value=DEFAULT_SENS.z;
+    qualityMode=isMobile?'balanced':'hd2k';
+    try{localStorage.setItem('geo_quality',qualityMode);}catch(e){}
+    syncQualityUI();applyRenderQuality();syncSens();
+  });
+  let saved=null;
+  try{saved=JSON.parse(localStorage.getItem('geo_sens')||'null');}catch(e){}
+  if(saved&&typeof saved.r==='number'&&typeof saved.z==='number'){rotS.value=saved.r;zoomS.value=saved.z;}
+  syncSens();
+
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){
+      if(setModal.classList.contains('open')) setModal.classList.remove('open');
+      else if(kbOpen) closeKb();
+    }
+  });
+}
+
+/* ============================================================
+   启动
+   ============================================================ */
+async function init(){
+  initRenderer(); initLights(); initStars();
+  let tex;
+  try{ tex = await loadAll(); }
+  catch(err){ $('loaderSub').textContent='纹理加载失败，请检查网络连接后刷新页面'; return; }
+  tex.color.colorSpace = THREE.SRGBColorSpace;
+  tex.clouds.colorSpace = THREE.SRGBColorSpace;
+  initEarth(tex);
+  initLabelRenderer();
+  createPlaceLabels();
+  createClimateLayer(); createCurrentLayer();
+  createLandmarkLayer(); createLayerGroup();
+  createPlateLayer(); createQuakeLayer();
+  createSolarSystem();
+  createSunLayerGroup();
+  createSolarMarker();
+  updateSun(state.dayOfYear);
+  bindAll();
+  if(!reducedMotion && window.gsap){
+    camera.position.set(0,1.6,4.4);
+    gsap.to(camera.position,{x:DEFAULT_CAMERA.x,y:DEFAULT_CAMERA.y,z:DEFAULT_CAMERA.z,duration:1.8,ease:'expo.out'});
+  }
+  animate();
+  setTimeout(()=>$('loader').classList.add('done'),500);
+}
+init();
+
+</script>
+</body>
+</html>
