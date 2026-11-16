@@ -3439,7 +3439,7 @@ function setupAdjustFocus(){
     zoom:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/><path d="M11 8v6M8 11h6"/>',
     layers:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5.5"/><circle cx="12" cy="12" r="2"/>'
   };
-  let active=null, dragId=null, hideTimer=null, lastIcon='';
+  let active=null, dragId=null, hideTimer=null, lastIcon='', dragBase=null;
 
   function metaOf(input){
     return META[input.id]||{label:input.dataset.hudLabel||'调节',icon:'sun',fmt:v=>String(Math.round(v))};
@@ -3460,13 +3460,10 @@ function setupAdjustFocus(){
     slider.setAttribute('aria-valuetext',meta.fmt(+input.value));
     slider.setAttribute('aria-label',meta.label);
   }
-  function setFromX(x){
+  function applyValue(v){
     if(!active) return;
-    const r=track.getBoundingClientRect();
-    const pct=Math.max(0,Math.min(1,(x-r.left)/(r.width||1)));
     const min=+active.min||0, max=(active.max===''?100:+active.max)||100;
     const step=(+active.step)||((max-min)/100);
-    let v=min+pct*(max-min);
     v=Math.round(v/step)*step;
     v=Math.min(max,Math.max(min,parseFloat(v.toFixed(6))));
     if(Math.abs(+active.value-v)>1e-9){
@@ -3474,6 +3471,21 @@ function setupAdjustFocus(){
       active.dispatchEvent(new Event('input',{bubbles:true}));
     }
     paint(active);
+  }
+  /* 直接按在调节条上：绝对定位 */
+  function setFromX(x){
+    if(!active) return;
+    const r=track.getBoundingClientRect();
+    const pct=Math.max(0,Math.min(1,(x-r.left)/(r.width||1)));
+    const min=+active.min||0, max=(active.max===''?100:+active.max)||100;
+    applyValue(min+pct*(max-min));
+  }
+  /* 从原控件上按住：按位移相对调节，避免松手瞬间数值跳变 */
+  function moveRelative(x){
+    if(!active||!dragBase) return;
+    const min=+active.min||0, max=(active.max===''?100:+active.max)||100;
+    const w=track.getBoundingClientRect().width||1;
+    applyValue(dragBase.val+((x-dragBase.x)/w)*(max-min));
   }
   function show(input){
     active=input; lastIcon=''; paint(input);
@@ -3491,7 +3503,7 @@ function setupAdjustFocus(){
       view.classList.remove('on');
       view.setAttribute('aria-hidden','true');
       document.body.classList.remove('adjust-mode');
-      active=null; dragId=null;
+      active=null; dragId=null; dragBase=null;
     }, delay==null?700:delay);
   }
   const asRange=el=> (el && el.matches && el.matches('input[type=range]')) ? el : null;
@@ -3503,23 +3515,25 @@ function setupAdjustFocus(){
     e.preventDefault();
     show(input);
     dragId=e.pointerId;
-    setFromX(e.clientX);
+    dragBase={x:e.clientX,val:+input.value};
+    paint(active);
   },true);
 
   slider.addEventListener('pointerdown',e=>{
     if(!active) return;
     e.preventDefault();
     dragId=e.pointerId;
+    dragBase=null;
     setFromX(e.clientX);
   });
 
   window.addEventListener('pointermove',e=>{
     if(dragId===null || e.pointerId!==dragId) return;
-    setFromX(e.clientX);
+    if(dragBase) moveRelative(e.clientX); else setFromX(e.clientX);
   });
   ['pointerup','pointercancel'].forEach(t=>window.addEventListener(t,e=>{
     if(dragId===null || e.pointerId!==dragId) return;
-    dragId=null;
+    dragId=null; dragBase=null;
     if(active) hide(700);
   }));
 
