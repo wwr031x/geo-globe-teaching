@@ -176,13 +176,37 @@ input{font-family:inherit}
 .dp-layer-facts .v{font-size:13px}
 .dp-layer-row.static{cursor:default}
 .dp-layer-row.static:hover{border-color:var(--line)}
-.dp-wave-row{display:flex;gap:11px;border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-top:10px}
-.dp-wave-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-top:4px}
-.dp-wave-body{min-width:0}
-.dp-wave-name{font-family:var(--font-display);font-weight:600;font-size:14px}
-.dp-wave-name small{display:block;margin-top:3px;color:var(--muted);font-size:11.5px;font-weight:400}
 .wave-diagram{border:1px solid var(--line);border-radius:12px;padding:10px;background:rgba(255,255,255,.02);margin-top:10px}
 .wave-diagram svg{display:block;width:100%;height:auto}
+
+/* ============ 地震波独立板块 ============ */
+.wv-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.wv-chip{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:#c3d2df;
+  border:1px solid var(--line);border-radius:9px;padding:7px 10px;background:rgba(255,255,255,.02)}
+.wv-chip .sw{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.wv-card{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:12px;background:rgba(255,255,255,.02)}
+.wv-card-head{display:flex;align-items:center;gap:10px}
+.wv-card-head .sw{width:13px;height:13px;border-radius:50%;flex-shrink:0}
+.wv-card-head .nm{font-family:var(--font-display);font-weight:600;font-size:15px}
+.wv-card-head .alias{margin-left:auto;font-size:11px;color:var(--muted);font-family:var(--font-display)}
+.wv-facts{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}
+.wv-fact{border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:rgba(255,255,255,.02)}
+.wv-fact .k{font-size:11px;color:var(--faint);margin-bottom:4px}
+.wv-fact .v{font-size:13px;line-height:1.5;color:#dbe8f1}
+.wv-fact .v b{font-family:var(--font-display);font-variant-numeric:tabular-nums}
+.wv-card .wv-desc{font-size:12.5px;line-height:1.7;color:var(--muted);margin-top:10px}
+.wv-vib{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}
+.wv-vib .box{border:1px solid var(--line);border-radius:12px;padding:10px;background:rgba(255,255,255,.02)}
+.wv-vib .box .t{font-size:12px;font-weight:600;margin-bottom:6px}
+.wv-vib svg{display:block;width:100%;height:auto}
+.wv-seismo{border:1px solid var(--line);border-radius:12px;padding:10px;background:rgba(255,255,255,.02);margin-top:12px}
+.wv-seismo svg{display:block;width:100%;height:auto}
+.wv-evidence{display:flex;flex-direction:column;gap:9px;margin-top:12px}
+.wv-evidence .row{display:flex;gap:10px;border:1px solid var(--line);border-radius:10px;padding:11px 12px;background:rgba(255,255,255,.02)}
+.wv-evidence .row .badge{flex-shrink:0;width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-size:12px;font-weight:700;color:#04121a}
+.wv-evidence .row .tx{font-size:12.5px;line-height:1.65;color:#c3d2df}
+.wv-evidence .row .tx b{color:var(--text)}
 .layer-toggle{display:flex;gap:6px;background:rgba(255,255,255,.04);border:1px solid var(--line);
   border-radius:10px;padding:4px;margin-top:14px}
 .layer-toggle button{flex:1;height:32px;border-radius:7px;font-size:12.5px;color:var(--muted);transition:all .25s}
@@ -219,6 +243,41 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 .coord-readout .sep{width:1px;height:14px;background:var(--line)}
 body.panel-open .coord-readout{opacity:0;transform:translateX(16px);pointer-events:none;
   transition:opacity .3s ease,transform .3s ease}
+
+/* ============ 右下角：太阳直射点概况图 ============ */
+.sun-overview{position:absolute;right:12px;bottom:70px;width:252px;z-index:20;
+  background:var(--panel);border:1px solid var(--line-strong);border-radius:14px;
+  padding:11px 13px 11px;backdrop-filter:blur(10px);
+  opacity:0;transform:translateX(16px);pointer-events:none;
+  transition:opacity .3s ease,transform .3s ease}
+.sun-overview.show{opacity:1;transform:translateX(0);pointer-events:auto}
+body.panel-open .sun-overview{opacity:0;transform:translateX(16px);pointer-events:none}
+.so-head{display:flex;justify-content:space-between;align-items:center;gap:8px;
+  width:100%;cursor:pointer;background:none;border:none;color:inherit;font-family:inherit;padding:0}
+.so-head-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.so-title{font-family:var(--font-display);font-weight:600;font-size:13px;color:var(--text);white-space:nowrap}
+.so-date-row{margin:2px 0 2px}
+.so-date{font-size:11px;color:var(--amber);font-variant-numeric:tabular-nums}
+.so-dec-head{font-size:11.5px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap}
+.so-chev{width:13px;height:13px;stroke:var(--muted);transition:transform .25s ease;flex-shrink:0}
+.sun-overview.collapsed .so-chev{transform:rotate(-90deg)}
+.so-body{margin-top:8px}
+.so-svg{display:block;width:100%;height:auto;margin-top:4px}
+.so-svg + .so-svg{margin-top:8px}
+.so-foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;
+  font-size:11.5px;color:var(--muted)}
+.so-foot b{color:var(--text);font-family:var(--font-display);font-variant-numeric:tabular-nums}
+.sun-overview.collapsed .so-body{display:none}
+@media (min-width:768px) and (min-height:500px){
+  .sun-overview{right:22px;bottom:70px}
+}
+@media (max-width:767px) and (orientation:portrait){
+  .sun-overview{right:10px;bottom:70px;width:216px;padding:10px 12px}
+  .sun-overview.collapsed{width:auto;max-width:190px}
+}
+@media (max-width:420px){
+  .sun-overview{right:10px;bottom:70px}
+}
 
 /* ============ 悬浮提示 ============ */
 .tooltip{position:fixed;z-index:50;pointer-events:none;background:var(--panel-solid);
@@ -322,6 +381,7 @@ body.panel-open .coord-readout{opacity:0;transform:translateX(16px);pointer-even
   .coord-readout{padding:7px 10px;gap:9px}
   .coord-readout .label{display:none}
   .search{max-width:none}
+  .wv-facts,.wv-vib{grid-template-columns:1fr}
 }
 /* ============ 手机横屏（矮高度，右侧抽屉式布局） ============ */
 @media (orientation:landscape) and (max-height:500px){
@@ -353,6 +413,7 @@ body.panel-open .coord-readout{opacity:0;transform:translateX(16px);pointer-even
   .zoom-controls button{width:28px;height:28px;font-size:16px}
   #resetView{padding:0 10px;font-size:11px}
   .coord-readout{right:10px;bottom:10px;padding:6px 10px;font-size:11px}
+  .sun-overview{right:10px;bottom:56px;width:236px;padding:10px 11px}
 }
 
 @media (prefers-reduced-motion:reduce){
@@ -529,6 +590,9 @@ body.panel-open .coord-readout{opacity:0;transform:translateX(16px);pointer-even
     <button class="layer-btn" data-layer="layer">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5.5"/><circle cx="12" cy="12" r="2"/></svg>
       圈层拆解</button>
+    <button class="layer-btn" data-layer="wave">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h3l2.5-6 4 12 3-8 2 4h5.5"/><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/></svg>
+      地震波</button>
   </nav>
 
   <!-- 详情面板 -->
@@ -558,6 +622,25 @@ body.panel-open .coord-readout{opacity:0;transform:translateX(16px);pointer-even
   <div class="coord-readout interactive" id="coordReadout">
     <span class="label">纬度 <b id="latVal">--</b></span><span class="sep"></span>
     <span class="label">经度 <b id="lonVal">--</b></span>
+  </div>
+
+  <!-- 太阳直射点概况图 -->
+  <div class="sun-overview" id="sunOverview">
+    <button class="so-head" id="soToggle" aria-expanded="true">
+      <span class="so-title">太阳直射点概况</span>
+      <span class="so-head-right">
+        <b class="so-dec-head" id="soDecHead"></b>
+        <svg class="so-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>
+      </span>
+    </button>
+    <div class="so-body">
+      <div class="so-date-row"><span class="so-date" id="soDate"></span></div>
+      <svg class="so-svg" id="soEarth" viewBox="0 0 250 132" role="img" aria-label="直射纬度侧视示意"></svg>
+      <svg class="so-svg" id="soCurve" viewBox="0 0 250 78" role="img" aria-label="直射点周年移动曲线"></svg>
+      <div class="so-foot">
+        <span id="soTerm"></span><b id="soDec"></b>
+      </div>
+    </div>
   </div>
 
   <!-- 地理知识库覆盖层 -->
@@ -1001,9 +1084,28 @@ const EARTH_INTERFACES = [
  {name:'古登堡界面',radiusKm:3480,vis:0.38,color:'#ffd25c',desc:'地幔与外核的分界面；横波在此消失，纵波速度明显下降。'},
  {name:'莫霍界面',radiusKm:6331,vis:0.94,color:'#8fd0ff',desc:'地壳与地幔的分界面；纵波和横波穿过该界面后速度明显加快。'}
 ];
-const SEISMIC_WAVES = [
- {name:'纵波（P波）',color:'#53d9a8',state:'固、液、气均可通过',speed:'5.5～13.7 km/s',desc:'速度最快，可穿过地幔、外核与内核，是地震后最先到达的波。'},
- {name:'横波（S波）',color:'#ff8a5c',state:'只能通过固体',speed:'3.2～7.3 km/s',desc:'速度较慢，以剪切振动为主；到达古登堡界面后无法继续穿过液态外核。'}
+/* 地震波独立板块：分类、振动、速度、介质、到达顺序与破坏（高中地理口径） */
+const WAVE_TYPES = [
+ {key:'P', name:'纵波', alias:'P 波 · Primary', color:'#53d9a8',
+  vibration:'质点振动方向与传播方向平行，岩层被压缩、拉伸交替向前推进',
+  speed:'5.5～13.7 km/s', speedNote:'速度最快，地壳表层约 5～7 km/s',
+  medium:'固体、液体、气体均可通过', order:'最先到达地震台',
+  damage:'晃动相对和缓；能穿过地幔、液态外核与固态内核'},
+ {key:'S', name:'横波', alias:'S 波 · Secondary', color:'#ff8a5c',
+  vibration:'质点振动方向与传播方向垂直，岩层发生左右、上下剪切',
+  speed:'3.2～7.3 km/s', speedNote:'约为纵波速度的 0.6 倍',
+  medium:'只能通过固体，不能通过液态外核', order:'晚于纵波到达',
+  damage:'摇晃更强烈；在古登堡界面处中断，是外核为液态的关键证据'},
+ {key:'L', name:'面波', alias:'L 波 · 沿地表传播', color:'#b58cff',
+  vibration:'沿地壳表层传播，分为滚动的瑞利波与横向剪切的乐夫波',
+  speed:'2～4 km/s', speedNote:'速度最慢',
+  medium:'沿地壳表层与浅部岩石传播', order:'最后到达，持续最久',
+  damage:'振幅最大，是地表房屋、桥梁破坏的主要来源'}
+];
+const WAVE_EVIDENCE = [
+ {title:'莫霍界面', color:'#8fd0ff', text:'地壳与地幔的分界：大陆约 30～50 km 深，大洋仅 5～10 km；纵、横波穿过该界面时速度都明显加快。'},
+ {title:'古登堡界面', color:'#ffd25c', text:'地幔与外核的分界：地下约 2900 km（半径约 3480 km）；横波在此消失，纵波速度骤降并发生折射。'},
+ {title:'外核为液态的推断', color:'#e8833a', text:'横波不能穿过液体。横波在古登堡界面以内突然消失，结合纵波的折射路径，推断外核是熔融铁镍液态层。'}
 ];
 const EARTH_RADIUS_KM = 6371;
 function depthFromRadius(r){ return EARTH_RADIUS_KM - r; }
@@ -1244,7 +1346,7 @@ let renderer, scene, camera, controls;
 let earthGroup, earthMesh, cloudsMesh, atmosphere, stars;
 let landmarkGroup, currentGroup, climateSphere, layerGroup, plateGroup, quakeGroup;
 let plateMeshes=[], quakeMeshes=[], plateLabelObjs=[], quakeLabelObjs=[];
-let sunLight, solarGroup, solarGlow;
+let sunLight, solarGroup, solarGlow, solarLabel;
 let labelRenderer, countryLabelObjs=[], cityLabelObjs=[], islandLabelObjs=[], featureLabelObjs=[];
 let kbOpen=false, kbActiveCat=0, kbQuery='';
 const clock = new THREE.Clock();
@@ -1352,16 +1454,18 @@ function createSolarMarker(){
   solarGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), normal);
   solarGroup.position.copy(normal);
 
-  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.006,0.006,0.085,10),
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.008,0.1,10),
     new THREE.MeshBasicMaterial({color:0xffc24d, transparent:true, opacity:0.95}));
-  pole.position.y=0.042;
-  const core = new THREE.Mesh(new THREE.SphereGeometry(0.026,24,24),
+  pole.position.y=0.05;
+  const core = new THREE.Mesh(new THREE.SphereGeometry(0.036,24,24),
     new THREE.MeshBasicMaterial({color:0xffd27a}));
-  core.position.y=0.1;
+  core.position.y=0.115;
   solarGlow = new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,
     color:0xffb24d, transparent:true, opacity:0.9, depthWrite:false, blending:THREE.AdditiveBlending}));
-  solarGlow.position.y=0.1; solarGlow.scale.set(0.11,0.11,1);
-  solarGroup.add(pole,core,solarGlow);
+  solarGlow.position.y=0.115; solarGlow.scale.set(0.18,0.18,1);
+  solarLabel = makeLayerLabel('太阳直射点','#ffd25c',0.46,0.13);
+  solarLabel.position.y=0.21; solarLabel.material.opacity=1;
+  solarGroup.add(pole,core,solarGlow,solarLabel);
   earthGroup.add(solarGroup);
 }
 
@@ -1380,7 +1484,7 @@ function updateSolarPulse(){
   if(!solarGlow || !solarGroup.visible) return;
   const t=clock.elapsedTime;
   const s=1+Math.sin(t*2.4)*0.12;
-  solarGlow.scale.set(0.11*s,0.11*s,1);
+  solarGlow.scale.set(0.18*s,0.18*s,1);
   solarGlow.material.opacity=0.75+0.2*Math.sin(t*2.4);
 }
 
@@ -1612,6 +1716,7 @@ function animate(){
   updateCurrentFlow(dt);
   updateMarkers(dt);
   updateLayerWaves(dt);
+  updateWavePanel(dt);
   updateSolarPulse();
   updateLabelLOD();
   updateCoordReadout();
@@ -2067,7 +2172,7 @@ function setExplode(v){
     m.label.position.lerpVectors(m.intactPos,m.explodePos,v);
     m.label.material.opacity = 0.95;
   });
-  if(layerWaveGroup) layerWaveGroup.visible = v < 0.15;
+  if(layerWaveGroup) layerWaveGroup.visible = false; // 波演示已拆分至独立「地震波」板块
   interfaceMeshes.forEach(im=>{ im.group.visible = v < 0.15; });
 }
 function moveCamera(pos, dur){
@@ -2682,7 +2787,7 @@ function flyTo(lat, lon, dist){
 const $ = id => document.getElementById(id);
 const detailPanel = $('detailPanel'), detailBody = $('detailBody');
 function openPanel(){ detailPanel.classList.add('open'); document.body.classList.add('panel-open'); }
-function closePanel(){ detailPanel.classList.remove('open'); document.body.classList.remove('panel-open'); }
+function closePanel(){ detailPanel.classList.remove('open'); document.body.classList.remove('panel-open'); syncOverview(); }
 
 function renderFacts(){
   detailBody.innerHTML = `
@@ -2781,6 +2886,88 @@ function updateSunReadout(){
     else hint=dec>0?'直射点位于北半球并向北/南移动，北半球昼长夜短，为夏半年。':'直射点位于南半球，北半球昼短夜长，为冬半年。';
     ex.textContent=hint;
   }
+  renderSunOverview();
+}
+
+/* ============ 右下角：太阳直射点概况图 ============ */
+function decLabel(dec){
+  if(Math.abs(dec)<0.05) return '0°（赤道）';
+  return `${Math.abs(dec).toFixed(1)}°${dec>0?'N':'S'}`;
+}
+function renderSunOverview(){
+  const ov=$('sunOverview'); if(!ov) return;
+  const n=state.dayOfYear, dec=solarDeclination(n);
+  const md=dayToMonthDay(n), term=currentTerm(n);
+  const dEl=$('soDate'); if(dEl) dEl.textContent=`${md.month}月${md.day}日 · ${term.name}`;
+  const tEl=$('soTerm'); if(tEl) tEl.textContent=`当前节气：${term.name}`;
+  const cEl=$('soDec'); if(cEl) cEl.textContent=decLabel(dec);
+  const hEl=$('soDecHead'); if(hEl) hEl.textContent=decLabel(dec);
+  renderSoEarth(dec);
+  renderSoCurve(n,dec);
+}
+function syncOverview(){
+  const ov=$('sunOverview'); if(ov) ov.classList.toggle('show', state.layer==='natural');
+}
+function setupOverview(){
+  const ov=$('sunOverview'), toggle=$('soToggle');
+  if(!ov) return;
+  const compact = window.innerWidth<768 && matchMedia('(orientation:portrait)').matches;
+  ov.classList.toggle('collapsed', compact);
+  if(toggle){
+    toggle.setAttribute('aria-expanded', String(!compact));
+    toggle.addEventListener('click',()=>{
+      const c=ov.classList.toggle('collapsed');
+      toggle.setAttribute('aria-expanded', String(!c));
+    });
+  }
+}
+/* 侧视地球：按直射纬度标出直射点、赤道与南北回归线 */
+function renderSoEarth(dec){
+  const svg=$('soEarth'); if(!svg) return;
+  const Cx=96,Cy=66,R=46, rad=dec*Math.PI/180, tR=23.44*Math.PI/180;
+  const yN=Cy-R*Math.sin(tR), yS=Cy+R*Math.sin(tR);
+  const Px=Cx+R*Math.cos(rad), Py=Cy-R*Math.sin(rad);
+  const sunX=216, sunY=66;
+  svg.innerHTML=`
+   <line x1="${Cx}" y1="${Cy-R-8}" x2="${Cx}" y2="${Cy+R+8}" stroke="#5d7186" stroke-width="1" stroke-dasharray="3 3" opacity=".7"/>
+   <circle cx="${Cx}" cy="${Cy}" r="${R}" fill="rgba(56,214,187,.07)" stroke="#7d8fa3" stroke-width="1.2"/>
+   <line x1="${Cx-R}" y1="${yN}" x2="${Cx+R}" y2="${yN}" stroke="#7d8fa3" stroke-width="1" stroke-dasharray="4 3" opacity=".8"/>
+   <line x1="${Cx-R}" y1="${Cy}" x2="${Cx+R}" y2="${Cy}" stroke="#8fd0ff" stroke-width="1" opacity=".55"/>
+   <line x1="${Cx-R}" y1="${yS}" x2="${Cx+R}" y2="${yS}" stroke="#7d8fa3" stroke-width="1" stroke-dasharray="4 3" opacity=".8"/>
+   <text x="4" y="${yN+3}" font-size="8.5" fill="#5d7186">北回归线</text>
+   <text x="4" y="${Cy+3}" font-size="8.5" fill="#8fd0ff">赤道</text>
+   <text x="4" y="${yS+3}" font-size="8.5" fill="#5d7186">南回归线</text>
+   <line x1="${sunX-14}" y1="${sunY}" x2="${Px+3}" y2="${Py}" stroke="#e6b25f" stroke-width="1.2" opacity=".7"/>
+   <circle cx="${sunX}" cy="${sunY}" r="12" fill="rgba(230,178,95,.16)" stroke="#e6b25f" stroke-width="1.2"/>
+   <circle cx="${sunX}" cy="${sunY}" r="5" fill="#ffd25c"/>
+   <circle cx="${Px.toFixed(1)}" cy="${Py.toFixed(1)}" r="8" fill="none" stroke="#ffb24d" stroke-width="1" opacity=".4"/>
+   <circle cx="${Px.toFixed(1)}" cy="${Py.toFixed(1)}" r="4.5" fill="#ffd27a" stroke="#ffb24d" stroke-width="1.2"/>
+   <text x="${Math.min(Px+10,178).toFixed(1)}" y="${(Py-7).toFixed(1)}" font-size="10" font-weight="600" fill="#ffd25c">${decLabel(dec)}</text>`;
+}
+/* 周年移动曲线：赤纬随年积日的往返，标出二分二至与当前位置 */
+function renderSoCurve(n,dec){
+  const svg=$('soCurve'); if(!svg) return;
+  const x0=14,x1=236,yTop=14,yMid=39,yBot=64;
+  const xm=k=>x0+(k-1)/364*(x1-x0);
+  const ym=d=>yMid-d/23.44*(yMid-yTop);
+  const pts=[];
+  for(let k=1;k<=365;k+=4) pts.push(`${xm(k).toFixed(1)},${ym(solarDeclination(k)).toFixed(1)}`);
+  const terms=KEY_TERMS.map(t=>{
+    const tx=xm(t.n), ty=ym(solarDeclination(t.n));
+    return `<circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="3" fill="#7d8fa3"/>
+      <text x="${tx.toFixed(1)}" y="75" font-size="8.5" fill="#5d7186" text-anchor="middle">${t.label}</text>`;
+  }).join('');
+  const cx=xm(n), cy=ym(dec);
+  svg.innerHTML=`
+   <line x1="${x0}" y1="${yTop}" x2="${x1}" y2="${yTop}" stroke="#7d8fa3" stroke-width="1" stroke-dasharray="4 3" opacity=".6"/>
+   <line x1="${x0}" y1="${yMid}" x2="${x1}" y2="${yMid}" stroke="#8fd0ff" stroke-width="1" stroke-dasharray="4 3" opacity=".5"/>
+   <line x1="${x0}" y1="${yBot}" x2="${x1}" y2="${yBot}" stroke="#7d8fa3" stroke-width="1" stroke-dasharray="4 3" opacity=".6"/>
+   <text x="${x0+2}" y="${yTop-3}" font-size="8.5" fill="#5d7186">23.5°N</text>
+   <text x="${x0+2}" y="${yBot+11}" font-size="8.5" fill="#5d7186">23.5°S</text>
+   <polyline points="${pts.join(' ')}" fill="none" stroke="#53d9a8" stroke-width="1.6" opacity=".9"/>
+   ${terms}
+   <line x1="${cx.toFixed(1)}" y1="${yTop}" x2="${cx.toFixed(1)}" y2="${yBot}" stroke="#e6b25f" stroke-width="1" stroke-dasharray="3 3" opacity=".5"/>
+   <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="5" fill="#ffd27a" stroke="#ffb24d" stroke-width="1.4"/>`;
 }
 
 /* ============ 城市气候面板（点击城市标签触发） ============ */
@@ -3012,38 +3199,184 @@ function renderLandmarkDetail(idx){
   detailBody.scrollTop = 0;
 }
 
-function seismicWaveDiagram(){
-  const sPts=[];
-  for(let j=0;j<=40;j++){
-    const t=j/40;
-    const x=160+45*t, y=110+45*t;
-    const off=Math.sin(t*7*Math.PI)*8;
-    sPts.push(`${(x-off*0.707).toFixed(1)},${(y+off*0.707).toFixed(1)}`);
-  }
-  const pYs=[130,145,162,177,205,220,237,265,280,297,315,335,350,365];
-  return `<div class="wave-diagram"><svg viewBox="0 0 320 430" role="img" aria-label="纵波和横波传播示意图">
-    <defs>
-      <marker id="pArrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
-        <path d="M0,0 L8,4 L0,8 z" fill="#53d9a8"/>
-      </marker>
-    </defs>
-    <circle cx="160" cy="250" r="140" fill="none" stroke="#7d8fa3" stroke-width="2"/>
-    <circle cx="160" cy="250" r="130" fill="none" stroke="#8fd0ff" stroke-dasharray="4 4"/>
-    <circle cx="160" cy="250" r="50" fill="none" stroke="#ffd25c" stroke-width="2"/>
-    <circle cx="160" cy="250" r="22" fill="none" stroke="#f3e6c4"/>
-    <line x1="160" y1="110" x2="160" y2="390" stroke="#53d9a8" stroke-width="2.5" marker-end="url(#pArrow)"/>
-    ${pYs.map(y=>`<circle cx="160" cy="${y}" r="4" fill="#53d9a8"/>`).join('')}
-    <path d="M${sPts.join(' L')}" fill="none" stroke="#ff8a5c" stroke-width="2.5"/>
-    <circle cx="205" cy="155" r="6" fill="none" stroke="#ff5252" stroke-width="2"/>
-    <circle cx="160" cy="110" r="6" fill="#ffd25c"/>
-    <text x="132" y="98" fill="#ffd25c" font-size="13">震源</text>
-    <text x="50" y="126" fill="#8fd0ff" font-size="12">莫霍界面</text>
-    <text x="214" y="255" fill="#ffd25c" font-size="12">古登堡界面</text>
-    <text x="214" y="150" fill="#ff8a5c" font-size="12">S横波</text>
-    <text x="214" y="166" fill="#ff8a5c" font-size="11">垂直振动</text>
-    <text x="214" y="181" fill="#ff8a5c" font-size="11">到此停止</text>
-    <text x="18" y="410" fill="#53d9a8" font-size="12">P纵波：压缩/拉伸，可穿过外核</text>
+/* ============ 地震波独立板块：剖面 / 振动示意 / 地震记录 ============ */
+const WV_C = {x:170, y:208, R:150};
+const WV_SRC = {x:170, y:58};
+const WV_P_END = {x:170, y:358};
+const WV_P_L = {x:78, y:300}, WV_P_R = {x:262, y:300};
+const WV_S_L = {x:125, y:141}, WV_S_R = {x:215, y:141};
+let wvPhase = 0;
+
+function wvArcPoint(deg){
+  const r = WV_C.R * Math.PI/180;
+  return {x: WV_C.x + WV_C.R*Math.cos(deg*Math.PI/180),
+          y: WV_C.y + WV_C.R*Math.sin(deg*Math.PI/180)};
+}
+function wvCrossSection(){
+  const pL = wvArcPoint(-140), pR = wvArcPoint(-40);
+  return `<div class="wave-diagram"><svg viewBox="0 0 340 376" role="img" aria-label="地震波在地球内部传播剖面示意图">
+    <circle cx="${WV_C.x}" cy="${WV_C.y}" r="150" fill="#7d8fa3" opacity="0.28"/>
+    <circle cx="${WV_C.x}" cy="${WV_C.y}" r="138" fill="#b5482f" opacity="0.55"/>
+    <circle cx="${WV_C.x}" cy="${WV_C.y}" r="78" fill="#e8833a" opacity="0.6"/>
+    <circle cx="${WV_C.x}" cy="${WV_C.y}" r="28" fill="#f3e6c4" opacity="0.85"/>
+    <circle cx="${WV_C.x}" cy="${WV_C.y}" r="138" fill="none" stroke="#8fd0ff" stroke-width="1.4" stroke-dasharray="5 4"/>
+    <circle cx="${WV_C.x}" cy="${WV_C.y}" r="78" fill="none" stroke="#ffd25c" stroke-width="1.4" stroke-dasharray="5 4"/>
+    <path d="M ${WV_SRC.x},${WV_SRC.y} A 150 150 0 0 0 ${pL.x.toFixed(1)},${pL.y.toFixed(1)}" fill="none" stroke="#b58cff" stroke-width="2" opacity="0.7"/>
+    <path d="M ${WV_SRC.x},${WV_SRC.y} A 150 150 0 0 1 ${pR.x.toFixed(1)},${pR.y.toFixed(1)}" fill="none" stroke="#b58cff" stroke-width="2" opacity="0.7"/>
+    <line x1="${WV_SRC.x}" y1="${WV_SRC.y}" x2="${WV_P_END.x}" y2="${WV_P_END.y}" stroke="#53d9a8" stroke-width="1.6" opacity="0.3"/>
+    <line x1="${WV_SRC.x}" y1="${WV_SRC.y}" x2="${WV_P_L.x}" y2="${WV_P_L.y}" stroke="#53d9a8" stroke-width="1.4" opacity="0.22"/>
+    <line x1="${WV_SRC.x}" y1="${WV_SRC.y}" x2="${WV_P_R.x}" y2="${WV_P_R.y}" stroke="#53d9a8" stroke-width="1.4" opacity="0.22"/>
+    <line x1="${WV_SRC.x}" y1="${WV_SRC.y}" x2="${WV_S_L.x}" y2="${WV_S_L.y}" stroke="#ff8a5c" stroke-width="2" opacity="0.85"/>
+    <line x1="${WV_SRC.x}" y1="${WV_SRC.y}" x2="${WV_S_R.x}" y2="${WV_S_R.y}" stroke="#ff8a5c" stroke-width="2" opacity="0.85"/>
+    <circle cx="${WV_S_L.x}" cy="${WV_S_L.y}" r="6" fill="none" stroke="#ff5252" stroke-width="1.8"/>
+    <circle cx="${WV_S_R.x}" cy="${WV_S_R.y}" r="6" fill="none" stroke="#ff5252" stroke-width="1.8"/>
+    <circle id="wvRing1" cx="${WV_SRC.x}" cy="${WV_SRC.y}" r="8" fill="none" stroke="#ffd25c" stroke-width="1.2" opacity="0.7"/>
+    <circle id="wvRing2" cx="${WV_SRC.x}" cy="${WV_SRC.y}" r="8" fill="none" stroke="#ffd25c" stroke-width="1.2" opacity="0.5"/>
+    <circle id="wvRing3" cx="${WV_SRC.x}" cy="${WV_SRC.y}" r="8" fill="none" stroke="#ffd25c" stroke-width="1.2" opacity="0.3"/>
+    <circle id="wvPktP" cx="${WV_SRC.x}" cy="${WV_SRC.y}" r="4.5" fill="#53d9a8"/>
+    <circle id="wvPktPL" cx="${WV_SRC.x}" cy="${WV_SRC.y}" r="3.6" fill="#53d9a8" opacity="0.85"/>
+    <circle id="wvPktPR" cx="${WV_SRC.x}" cy="${WV_SRC.y}" r="3.6" fill="#53d9a8" opacity="0.85"/>
+    <circle id="wvPktSL" cx="${WV_SRC.x}" cy="${WV_SRC.y}" r="4" fill="#ff8a5c"/>
+    <circle id="wvPktSR" cx="${WV_SRC.x}" cy="${WV_SRC.y}" r="4" fill="#ff8a5c"/>
+    <circle id="wvPktLL" cx="${WV_SRC.x}" cy="${WV_SRC.y}" r="3.6" fill="#b58cff"/>
+    <circle id="wvPktLR" cx="${WV_SRC.x}" cy="${WV_SRC.y}" r="3.6" fill="#b58cff"/>
+    <circle cx="${WV_SRC.x}" cy="${WV_SRC.y}" r="6" fill="#ffd25c"/>
+    <text x="182" y="52" fill="#ffd25c" font-size="12.5">震源</text>
+    <text x="252" y="92" fill="#8fd0ff" font-size="11">莫霍界面</text>
+    <text x="252" y="105" fill="#8fd0ff" font-size="9.5" opacity="0.8">深 30～50 km</text>
+    <text x="206" y="270" fill="#ffd25c" font-size="11">古登堡界面</text>
+    <text x="206" y="283" fill="#ffd25c" font-size="9.5" opacity="0.8">深约 2900 km</text>
+    <text x="104" y="256" fill="#ffe9d6" font-size="10.5">外核（液态）</text>
+    <text x="170" y="212" fill="#3a2c12" font-size="10" text-anchor="middle">内核</text>
+    <text x="182" y="340" fill="#53d9a8" font-size="11.5">P 纵波 · 穿过地核</text>
+    <text x="18" y="136" fill="#ff8a5c" font-size="11.5">S 横波 · 到此停止</text>
+    <text x="18" y="86" fill="#b58cff" font-size="11.5">面波 · 沿地表</text>
   </svg></div>`;
+}
+
+function wvSeismogram(){
+  const base=74, left=24, right=324;
+  const pts=[];
+  for(let x=left;x<=right;x+=4){
+    let amp=2, y=base;
+    if(x<88){ amp=2.5; }
+    else if(x<138){ amp=7; }
+    else if(x<168){ amp=2; }
+    else if(x<220){ amp=13; }
+    else { const d=(x-220)/(right-220); amp=26*(1-d*0.7); }
+    const n=Math.sin(x*0.35)*0.6+Math.sin(x*0.9)*0.4;
+    y=base+n*amp;
+    pts.push(`${x},${y.toFixed(1)}`);
+  }
+  const ticks=[{x:88,c:'#53d9a8',t:'P 纵波'},{x:168,c:'#ff8a5c',t:'S 横波'},{x:220,c:'#b58cff',t:'面波'}];
+  return `<div class="wv-seismo"><svg viewBox="0 0 340 132" role="img" aria-label="地震仪记录到的纵波横波面波到达顺序">
+    <line x1="${left}" y1="${base}" x2="${right}" y2="${base}" stroke="#3a4d5e" stroke-width="1"/>
+    ${ticks.map(k=>`<line x1="${k.x}" y1="20" x2="${k.x}" y2="${base+14}" stroke="${k.c}" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/>
+      <text x="${k.x}" y="14" fill="${k.c}" font-size="10.5" text-anchor="middle">${k.t}</text>`).join('')}
+    <polyline points="${pts.join(' ')}" fill="none" stroke="#8fd0ff" stroke-width="1.6" stroke-linejoin="round"/>
+    <text x="${left}" y="120" fill="#7d8fa3" font-size="10">震后时间 →</text>
+    <text x="${right}" y="120" fill="#7d8fa3" font-size="10" text-anchor="end">振幅由小到大</text>
+  </svg></div>`;
+}
+
+function wvVibration(){
+  const pDots=[20,38,56,74,92,110,128].map((x,i)=>{
+    const off=Math.sin(i*1.1)*4;
+    return `<circle cx="${(x+off).toFixed(1)}" cy="36" r="4" fill="#53d9a8" opacity="0.9"/>`;
+  }).join('');
+  const sDots=[20,38,56,74,92,110,128].map((x,i)=>{
+    const off=(i%2?5:-5);
+    return `<circle cx="${x}" cy="${36+off}" r="4" fill="#ff8a5c" opacity="0.9"/>`;
+  }).join('');
+  return `<div class="wv-vib">
+    <div class="box">
+      <div class="t" style="color:#53d9a8">纵波：振动 ∥ 传播方向</div>
+      <svg viewBox="0 0 150 72" role="img" aria-label="纵波压缩拉伸示意">
+        ${pDots}
+        <line x1="18" y1="58" x2="132" y2="58" stroke="#53d9a8" stroke-width="1.4" marker-end="url(#wvArrP)"/>
+        <defs><marker id="wvArrP" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#53d9a8"/></marker></defs>
+        <text x="75" y="70" fill="#7d8fa3" font-size="9.5" text-anchor="middle">压缩 → 拉伸 → 压缩</text>
+      </svg>
+    </div>
+    <div class="box">
+      <div class="t" style="color:#ff8a5c">横波：振动 ⊥ 传播方向</div>
+      <svg viewBox="0 0 150 72" role="img" aria-label="横波剪切示意">
+        ${sDots}
+        <line x1="18" y1="58" x2="132" y2="58" stroke="#ff8a5c" stroke-width="1.4" marker-end="url(#wvArrS)"/>
+        <defs><marker id="wvArrS" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#ff8a5c"/></marker></defs>
+        <text x="75" y="70" fill="#7d8fa3" font-size="9.5" text-anchor="middle">上下 / 左右剪切</text>
+      </svg>
+    </div>
+  </div>`;
+}
+
+function renderWavePanel(){
+  detailBody.innerHTML = `
+   <div class="dp-kicker">Seismic Waves</div>
+   <div class="dp-title">地震波</div>
+   <div class="dp-sub">震源释放的能量以波的形式向外传播：先到纵波，再到横波，最后是沿地表的面波</div>
+   <div class="wv-legend">
+     ${WAVE_TYPES.map(w=>`<span class="wv-chip"><span class="sw" style="background:${w.color}"></span>${w.name}（${w.alias.split(' · ')[0]}）</span>`).join('')}
+   </div>
+   <div class="dp-section-title">地球内部传播剖面</div>
+   ${wvCrossSection()}
+   <div class="dp-section-title">三类地震波对比</div>
+   ${WAVE_TYPES.map(w=>`
+     <div class="wv-card">
+       <div class="wv-card-head">
+         <span class="sw" style="background:${w.color}"></span>
+         <span class="nm">${w.name}</span>
+         <span class="alias">${w.alias}</span>
+       </div>
+       <div class="wv-facts">
+         <div class="wv-fact"><div class="k">振动方向</div><div class="v">${w.vibration}</div></div>
+         <div class="wv-fact"><div class="k">传播速度</div><div class="v"><b>${w.speed}</b><br><span style="color:var(--muted);font-size:11.5px">${w.speedNote}</span></div></div>
+         <div class="wv-fact"><div class="k">可通过介质</div><div class="v">${w.medium}</div></div>
+         <div class="wv-fact"><div class="k">到达顺序</div><div class="v">${w.order}</div></div>
+       </div>
+       <div class="wv-desc">${w.damage}</div>
+     </div>`).join('')}
+   <div class="dp-section-title">振动方式对比</div>
+   ${wvVibration()}
+   <div class="dp-section-title">地震仪记录：到达顺序与振幅</div>
+   ${wvSeismogram()}
+   <div class="dp-section-title">界面证据：如何推断地球内部</div>
+   <div class="wv-evidence">
+     ${WAVE_EVIDENCE.map(e=>`
+       <div class="row">
+         <span class="badge" style="background:${e.color}">·</span>
+         <span class="tx"><b>${e.title}</b>　${e.text}</span>
+       </div>`).join('')}
+   </div>
+   <div class="dp-note">示意说明：剖面与波形为教学示意，未按真实比例；速度、深度与圈层状态取自地球内部结构的常见教学数据。P 纵波可穿过液态外核，S 横波在古登堡界面处消失。</div>`;
+}
+
+function wvSetPkt(id, a, b, t){
+  const el=detailBody.querySelector('#'+id);
+  if(!el) return;
+  el.setAttribute('cx',(a.x+(b.x-a.x)*t).toFixed(1));
+  el.setAttribute('cy',(a.y+(b.y-a.y)*t).toFixed(1));
+}
+function updateWavePanel(dt){
+  if(state.layer!=='wave') return;
+  if(reducedMotion) return;
+  wvPhase += dt;
+  const ring=detailBody.querySelectorAll('#wvRing1,#wvRing2,#wvRing3');
+  ring.forEach((el,i)=>{
+    const t=((wvPhase*0.55)+i/3)%1;
+    el.setAttribute('r',(6+t*26).toFixed(1));
+    el.setAttribute('opacity',(0.7*(1-t)).toFixed(2));
+  });
+  wvSetPkt('wvPktP',WV_SRC,WV_P_END,(wvPhase*0.5)%1);
+  wvSetPkt('wvPktPL',WV_SRC,WV_P_L,(wvPhase*0.45+0.2)%1);
+  wvSetPkt('wvPktPR',WV_SRC,WV_P_R,(wvPhase*0.45+0.2)%1);
+  wvSetPkt('wvPktSL',WV_SRC,WV_S_L,(wvPhase*0.4)%1);
+  wvSetPkt('wvPktSR',WV_SRC,WV_S_R,(wvPhase*0.4)%1);
+  const tL=(wvPhase*0.5)%1, tR=(wvPhase*0.5+0.3)%1;
+  const l=wvArcPoint(-90+(-50)*tL), r=wvArcPoint(-90+(50)*tR);
+  const elL=detailBody.querySelector('#wvPktLL'), elR=detailBody.querySelector('#wvPktLR');
+  if(elL){elL.setAttribute('cx',l.x.toFixed(1));elL.setAttribute('cy',l.y.toFixed(1));}
+  if(elR){elR.setAttribute('cx',r.x.toFixed(1));elR.setAttribute('cy',r.y.toFixed(1));}
 }
 function renderLayerPanel(sel){
   detailBody.innerHTML = `
@@ -3077,17 +3410,7 @@ function renderLayerPanel(sel){
        <div class="dp-desc" style="margin-top:8px;color:var(--muted)">半径 ${inf.radiusKm} km</div>
        <div class="dp-desc" style="margin-top:8px">${inf.desc}</div>
      </div>`).join('')}
-   <div class="dp-section-title">地震波演示</div>
-   ${seismicWaveDiagram()}
-   ${SEISMIC_WAVES.map(w=>`
-     <div class="dp-wave-row">
-       <span class="dp-wave-dot" style="background:${w.color}"></span>
-       <div class="dp-wave-body">
-         <div class="dp-wave-name">${w.name}<small>${w.state} · ${w.speed}</small></div>
-         <div class="dp-desc" style="margin-top:6px">${w.desc}</div>
-       </div>
-     </div>`).join('')}
-   <div class="dp-note">示意说明：地壳真实厚度不足半径的 1%，模型中已放大显示；各圈层半径、温度与密度为真实数据。绿色纵波可穿过液态外核，橙色横波在古登堡界面处停止。</div>`;
+   <div class="dp-note">示意说明：地壳真实厚度不足半径的 1%，模型中已放大显示；各圈层半径、温度与密度为真实数据。地震波的分类、传播与界面证据见导航栏「地震波」板块。</div>`;
 }
 
 /* ============================================================
@@ -3095,6 +3418,7 @@ function renderLayerPanel(sel){
    ============================================================ */
 function switchLayer(name){
   state.layer = name;
+  syncOverview();
   document.querySelectorAll('.layer-btn').forEach(b=>
     b.classList.toggle('active', b.dataset.layer===name));
   if(climateGroup) climateGroup.visible = false;
@@ -3129,6 +3453,7 @@ function switchLayer(name){
     renderPlateOverview(); openPanel(); }
   if(name==='quake'){ quakeGroup.visible=true; quakeLabelObjs.forEach(L=>L.obj.visible=true);
     renderQuakeOverview(); openPanel(); }
+  if(name==='wave'){ renderWavePanel(); openPanel(); }
 }
 
 /* ============================================================
@@ -3632,6 +3957,9 @@ async function init(){
   createSunLayerGroup();
   createSolarMarker();
   updateSun(state.dayOfYear);
+  setupOverview();
+  renderSunOverview();
+  syncOverview();
   bindAll();
   if(!reducedMotion && window.gsap){
     camera.position.set(0,1.6,4.4);
