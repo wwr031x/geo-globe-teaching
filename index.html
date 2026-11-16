@@ -517,6 +517,261 @@ body.panel-open .sun-overview{opacity:0;transform:translateX(16px);pointer-event
 .set-reset{width:100%;height:42px;border-radius:11px;border:1px solid var(--line-strong);background:var(--panel);
   color:#c3d2df;font-size:13.5px;cursor:pointer;transition:all .25s}
 .set-reset:hover{border-color:var(--teal);color:var(--teal)}
+
+/* ============================================================
+   液态玻璃主题 · LIQUID GLASS
+   统一的半透明渐变填充 / 背景模糊 / 边缘折射高光 / 柔和投影
+   ============================================================ */
+:root{
+  --lg-warm:rgba(255,255,255,.55);
+  --lg-fill:linear-gradient(152deg,rgba(255,255,255,.21) 0%,rgba(255,255,255,.075) 34%,rgba(255,255,255,.032) 64%,rgba(255,255,255,.14) 100%);
+  --lg-fill-soft:linear-gradient(152deg,rgba(255,255,255,.11) 0%,rgba(255,255,255,.035) 55%,rgba(255,255,255,.075) 100%);
+  --lg-tint:rgba(13,26,41,.46);
+  --lg-tint-strong:rgba(12,24,38,.6);
+  --lg-stroke:rgba(255,255,255,.17);
+  --lg-stroke-strong:rgba(255,255,255,.30);
+  --lg-blur:saturate(185%) blur(20px);
+  --lg-blur-soft:saturate(165%) blur(12px);
+  --lg-shadow:0 18px 44px rgba(0,0,0,.42),0 3px 10px rgba(0,0,0,.26);
+  --lg-inner:inset 0 1px 0 rgba(255,255,255,.42),inset 0 -1px 0 rgba(255,255,255,.12),inset 0 0 30px rgba(126,205,255,.07),0 0 0 1px rgba(255,255,255,.04);
+  --lg-inner-soft:inset 0 1px 0 rgba(255,255,255,.26),inset 0 -1px 0 rgba(255,255,255,.07),inset 0 0 18px rgba(126,205,255,.06);
+}
+/* 玻璃质感基类：可在需要时直接复用 */
+.lg-surface{
+  background-color:var(--lg-tint);background-image:var(--lg-fill);
+  border:1px solid var(--lg-stroke);backdrop-filter:var(--lg-blur);
+  -webkit-backdrop-filter:var(--lg-blur);
+  box-shadow:var(--lg-inner),var(--lg-shadow);
+}
+
+/* ---------- 顶栏 / 搜索 ---------- */
+.topbar{background:linear-gradient(to bottom,rgba(4,7,13,.80) 0%,rgba(4,7,13,.34) 62%,rgba(4,7,13,0) 100%)}
+.brand-txt b,.brand-txt small{text-shadow:0 2px 10px rgba(0,0,0,.65)}
+.search input{
+  border-radius:13px;border:1px solid var(--lg-stroke);
+  background-color:rgba(11,22,36,.42);background-image:var(--lg-fill-soft);
+  backdrop-filter:var(--lg-blur-soft);-webkit-backdrop-filter:var(--lg-blur-soft);
+  box-shadow:var(--lg-inner-soft),0 10px 26px rgba(0,0,0,.28);
+  text-shadow:0 1px 2px rgba(0,0,0,.35)}
+.search input:focus{
+  border-color:rgba(56,214,187,.58);background-color:rgba(9,24,34,.5);
+  box-shadow:var(--lg-inner-soft),0 0 0 3px rgba(56,214,187,.13),0 12px 30px rgba(0,0,0,.32)}
+.search-results{
+  border-radius:14px;border:1px solid var(--lg-stroke-strong);
+  background-color:rgba(9,18,30,.6);background-image:var(--lg-fill);
+  backdrop-filter:var(--lg-blur);-webkit-backdrop-filter:var(--lg-blur);
+  box-shadow:var(--lg-inner),0 24px 54px rgba(0,0,0,.52)}
+.sr-item{border-bottom:1px solid rgba(255,255,255,.07)}
+.sr-item:hover{background:rgba(56,214,187,.1)}
+.sr-kind{border-color:rgba(255,255,255,.16);background:rgba(255,255,255,.05)}
+
+.icon-btn{
+  border-radius:12px;border:1px solid var(--lg-stroke);
+  background-color:rgba(11,22,36,.4);background-image:var(--lg-fill-soft);
+  backdrop-filter:var(--lg-blur-soft);-webkit-backdrop-filter:var(--lg-blur-soft);
+  box-shadow:var(--lg-inner-soft),0 8px 20px rgba(0,0,0,.24);color:#cfdde9}
+.icon-btn:hover{border-color:var(--lg-stroke-strong);color:#fff;
+  background-color:rgba(22,38,56,.52);box-shadow:var(--lg-inner-soft),0 10px 26px rgba(0,0,0,.3)}
+.icon-btn.active{color:#c8fff4;border-color:rgba(56,214,187,.55);
+  background-color:rgba(24,86,82,.42);
+  background-image:linear-gradient(152deg,rgba(56,214,187,.32),rgba(56,214,187,.08));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.34),0 0 22px rgba(56,214,187,.22)}
+
+/* ---------- 图层导航 ---------- */
+.layer-btn{
+  border-radius:15px;border:1px solid var(--lg-stroke);
+  background-color:rgba(10,21,34,.4);background-image:var(--lg-fill-soft);
+  backdrop-filter:var(--lg-blur-soft);-webkit-backdrop-filter:var(--lg-blur-soft);
+  box-shadow:var(--lg-inner-soft),0 8px 22px rgba(0,0,0,.24);color:#b6c8d7}
+.layer-btn:not(.active):hover{color:#fff;border-color:var(--lg-stroke-strong);
+  background-color:rgba(20,36,54,.52);box-shadow:var(--lg-inner-soft),0 10px 26px rgba(0,0,0,.3)}
+.layer-btn.active{
+  color:#f0fffb;border-color:rgba(56,214,187,.62);
+  background-color:rgba(20,92,84,.4);
+  background-image:linear-gradient(152deg,rgba(72,232,203,.42) 0%,rgba(38,160,146,.2) 55%,rgba(56,214,187,.12) 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4),inset 0 -1px 0 rgba(255,255,255,.08),0 0 24px rgba(56,214,187,.28),0 10px 26px rgba(0,0,0,.26);
+  font-weight:600}
+
+/* ---------- 详情面板 ---------- */
+.detail-panel{
+  z-index:30;border-radius:22px 22px 0 0;border:1px solid var(--lg-stroke-strong);border-bottom:none;
+  background-color:var(--lg-tint-strong);background-image:var(--lg-fill);
+  backdrop-filter:var(--lg-blur);-webkit-backdrop-filter:var(--lg-blur);
+  box-shadow:var(--lg-inner),0 -22px 60px rgba(0,0,0,.5);overflow:hidden}
+.detail-panel::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:radial-gradient(130% 55% at 14% -6%,rgba(255,255,255,.2) 0%,rgba(255,255,255,0) 62%)}
+.detail-grab{background:rgba(255,255,255,.28);box-shadow:0 1px 0 rgba(255,255,255,.22)}
+.detail-close{border-radius:10px;border:1px solid transparent;background:rgba(255,255,255,.05)}
+.detail-close:hover{background:rgba(255,255,255,.12);border-color:var(--lg-stroke)}
+.dp-cell,.wv-fact,.wv-chip,.wave-diagram,.wv-vib .box,.wv-seismo,.wv-evidence .row,.dp-layer-row,.solar-ctl{
+  border-color:rgba(255,255,255,.13);
+  background-color:rgba(255,255,255,.045);background-image:var(--lg-fill-soft);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 6px 18px rgba(0,0,0,.16)}
+.dp-cell,.wv-fact{border-radius:12px}
+.dp-list-item{border-radius:12px;border-color:rgba(255,255,255,.13);
+  background-color:rgba(255,255,255,.045);background-image:var(--lg-fill-soft);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16)}
+.dp-list-item:hover,.dp-list-item.active{
+  border-color:rgba(56,214,187,.5);
+  background-color:rgba(30,102,96,.3);
+  background-image:linear-gradient(152deg,rgba(56,214,187,.24),rgba(56,214,187,.05));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.26),0 0 18px rgba(56,214,187,.16)}
+.dp-layer-row.sel{border-color:rgba(56,214,187,.5);
+  background-color:rgba(30,102,96,.26);
+  background-image:linear-gradient(152deg,rgba(56,214,187,.22),rgba(56,214,187,.04));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.24),0 0 18px rgba(56,214,187,.14)}
+.dp-note{border-radius:10px;border-left:2px solid rgba(230,178,95,.85);
+  background-color:rgba(230,178,95,.10);background-image:linear-gradient(152deg,rgba(255,214,150,.08),rgba(230,178,95,.02))}
+.dp-photo{border-color:rgba(255,255,255,.14);box-shadow:0 10px 24px rgba(0,0,0,.3)}
+.dp-table th{border-bottom-color:rgba(255,255,255,.1)}
+.dp-table td{border-bottom-color:rgba(255,255,255,.07)}
+.layer-toggle{border-radius:12px;border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.045)}
+.layer-toggle button{border-radius:9px}
+.layer-toggle button.active{background-image:linear-gradient(152deg,rgba(72,232,203,.42),rgba(56,214,187,.16));
+  background-color:rgba(20,92,84,.4);color:#f0fffb;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.36),0 0 18px rgba(56,214,187,.2)}
+.solar-ctl,.solar-play{border-radius:12px}
+.solar-play{background-color:rgba(30,102,96,.32);
+  background-image:linear-gradient(152deg,rgba(56,214,187,.26),rgba(56,214,187,.06));
+  border-color:rgba(56,214,187,.5);color:#bff9ef;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.26),0 0 18px rgba(56,214,187,.14)}
+.solar-play:hover{background-color:rgba(56,214,187,.9);color:#032018}
+
+/* ---------- 底部控制坞 / 读数 ---------- */
+.zoom-controls,.explode-ctl{
+  border-radius:24px;border:1px solid var(--lg-stroke);
+  background-color:rgba(10,21,34,.42);background-image:var(--lg-fill-soft);
+  backdrop-filter:var(--lg-blur-soft);-webkit-backdrop-filter:var(--lg-blur-soft);
+  box-shadow:var(--lg-inner-soft),0 12px 30px rgba(0,0,0,.3)}
+.zoom-controls button{border-radius:50%}
+.zoom-controls button:hover{background:rgba(255,255,255,.12)}
+.zoom-controls .divider{background:rgba(255,255,255,.16)}
+#resetView{border-radius:16px}
+.coord-readout{
+  border-radius:13px;border:1px solid var(--lg-stroke);
+  background-color:rgba(10,21,34,.42);background-image:var(--lg-fill-soft);
+  backdrop-filter:var(--lg-blur-soft);-webkit-backdrop-filter:var(--lg-blur-soft);
+  box-shadow:var(--lg-inner-soft),0 10px 26px rgba(0,0,0,.28)}
+.coord-readout .sep{background:rgba(255,255,255,.16)}
+
+/* ---------- 太阳直射点概况图 ---------- */
+.sun-overview{
+  border-radius:18px;border:1px solid var(--lg-stroke-strong);
+  background-color:rgba(13,26,41,.54);background-image:var(--lg-fill);
+  backdrop-filter:var(--lg-blur);-webkit-backdrop-filter:var(--lg-blur);
+  box-shadow:var(--lg-inner),0 20px 46px rgba(0,0,0,.42);
+  overflow:hidden}
+.sun-overview::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:radial-gradient(120% 60% at 10% -10%,rgba(255,255,255,.22) 0%,rgba(255,255,255,0) 58%)}
+.sun-overview.placed{right:auto;bottom:auto}
+.so-head{cursor:grab;touch-action:none;user-select:none;position:relative;z-index:1}
+.sun-overview.dragging{cursor:grabbing;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.42),inset 0 0 30px rgba(126,205,255,.1),0 30px 70px rgba(0,0,0,.55);
+  border-color:rgba(255,255,255,.4)}
+.sun-overview.dragging .so-head{cursor:grabbing}
+.sun-overview.locked .so-head{cursor:default}
+.sun-overview.locked{border-color:rgba(230,178,95,.34)}
+.so-title{display:inline-flex;align-items:center;gap:6px}
+.so-grip{display:inline-flex;flex-wrap:wrap;width:10px;height:10px;gap:2px;opacity:.5;flex:none}
+.so-grip i{width:4px;height:4px;border-radius:50%;background:currentColor;display:block}
+.so-lock{width:24px;height:24px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  color:#9fb2c4;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.055);
+  transition:all .22s;flex:none}
+.so-lock:hover{color:#fff;border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.12)}
+.so-lock svg{width:13px;height:13px}
+.sun-overview.locked .so-lock{color:#ffd48f;border-color:rgba(230,178,95,.55);
+  background:rgba(230,178,95,.16);box-shadow:0 0 14px rgba(230,178,95,.24)}
+.so-lock .ic-unlocked,.so-lock .ic-locked{display:none}
+.sun-overview:not(.locked) .so-lock .ic-unlocked{display:block}
+.sun-overview.locked .so-lock .ic-locked{display:block}
+.so-date,.so-dec-head,.so-term{}
+/* 详情面板打开时：默认停靠位隐藏；用户拖动过则保留 */
+body.panel-open .sun-overview:not(.moved){opacity:0;transform:translateX(16px);pointer-events:none}
+body.panel-open .sun-overview.moved{opacity:1;transform:none;pointer-events:auto}
+
+/* ---------- 提示 / 轻提示 ---------- */
+.tooltip{border-radius:11px;border:1px solid var(--lg-stroke-strong);
+  background-color:rgba(9,18,30,.62);background-image:var(--lg-fill);
+  backdrop-filter:var(--lg-blur-soft);-webkit-backdrop-filter:var(--lg-blur-soft);
+  box-shadow:var(--lg-inner-soft),0 14px 34px rgba(0,0,0,.46)}
+.toast-msg{border-radius:13px;border:1px solid var(--lg-stroke-strong);
+  background-color:rgba(9,18,30,.62);background-image:var(--lg-fill);
+  backdrop-filter:var(--lg-blur-soft);-webkit-backdrop-filter:var(--lg-blur-soft);
+  box-shadow:var(--lg-inner-soft),0 16px 38px rgba(0,0,0,.46)}
+
+/* ---------- 地理知识库 ---------- */
+.kb-overlay{background:rgba(5,11,20,.5);backdrop-filter:saturate(165%) blur(26px);
+  -webkit-backdrop-filter:saturate(165%) blur(26px)}
+.kb-head{border-bottom:1px solid rgba(255,255,255,.1)}
+.kb-search{border-radius:14px;border:1px solid var(--lg-stroke);
+  background-color:rgba(10,21,34,.44);background-image:var(--lg-fill-soft);
+  backdrop-filter:var(--lg-blur-soft);-webkit-backdrop-filter:var(--lg-blur-soft);
+  box-shadow:var(--lg-inner-soft),0 10px 26px rgba(0,0,0,.26)}
+.kb-cats{border-bottom:1px solid rgba(255,255,255,.1)}
+.kb-cat{border-radius:12px;border:1px solid var(--lg-stroke);
+  background-color:rgba(10,21,34,.4);background-image:var(--lg-fill-soft);
+  backdrop-filter:var(--lg-blur-soft);-webkit-backdrop-filter:var(--lg-blur-soft);
+  box-shadow:var(--lg-inner-soft),0 6px 18px rgba(0,0,0,.2)}
+.kb-cat.active{color:#d9fff8;border-color:rgba(56,214,187,.5);
+  background-color:rgba(24,86,82,.36);
+  background-image:linear-gradient(152deg,rgba(56,214,187,.3),rgba(56,214,187,.06));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 0 20px rgba(56,214,187,.16)}
+.kb-card{border-radius:18px;border:1px solid var(--lg-stroke);
+  background-color:rgba(11,22,36,.4);background-image:var(--lg-fill);
+  backdrop-filter:var(--lg-blur-soft);-webkit-backdrop-filter:var(--lg-blur-soft);
+  box-shadow:var(--lg-inner-soft),0 14px 34px rgba(0,0,0,.26);overflow:hidden;position:relative}
+.kb-card:hover{border-color:rgba(255,255,255,.34);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 20px 44px rgba(0,0,0,.34)}
+.kb-card.open{border-color:rgba(56,214,187,.4)}
+.kb-points ul{border-top-color:rgba(255,255,255,.1)}
+
+/* ---------- 设置弹层 ---------- */
+.settings-modal{background:rgba(3,7,13,.52);backdrop-filter:saturate(160%) blur(20px);
+  -webkit-backdrop-filter:saturate(160%) blur(20px)}
+.settings-card{border-radius:24px;border:1px solid var(--lg-stroke-strong);
+  background-color:rgba(13,26,42,.58);background-image:var(--lg-fill);
+  backdrop-filter:var(--lg-blur);-webkit-backdrop-filter:var(--lg-blur);
+  box-shadow:var(--lg-inner),0 30px 70px rgba(0,0,0,.55);overflow:hidden;position:relative}
+.settings-card::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:radial-gradient(120% 50% at 12% -8%,rgba(255,255,255,.18) 0%,rgba(255,255,255,0) 60%)}
+.set-guide,.quality-opt{background-color:rgba(255,255,255,.05);background-image:var(--lg-fill-soft);
+  border-color:rgba(255,255,255,.13);box-shadow:inset 0 1px 0 rgba(255,255,255,.16)}
+.set-guide,.set-reset,.quality-opt{border-radius:13px}
+.set-guide{position:relative;z-index:1}
+.set-row,.set-head,.set-reset{position:relative;z-index:1}
+.quality-opt.active{border-color:rgba(56,214,187,.55);color:#c9fdf4;
+  background-color:rgba(24,86,82,.34);
+  background-image:linear-gradient(152deg,rgba(56,214,187,.26),rgba(56,214,187,.05));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 0 16px rgba(56,214,187,.14)}
+.set-reset{border-color:rgba(255,255,255,.16);background-color:rgba(255,255,255,.05);
+  background-image:var(--lg-fill-soft);box-shadow:inset 0 1px 0 rgba(255,255,255,.16)}
+.set-reset:hover{border-color:rgba(56,214,187,.5);color:#c9fdf4;
+  background-color:rgba(24,86,82,.3);box-shadow:inset 0 1px 0 rgba(255,255,255,.24),0 0 16px rgba(56,214,187,.12)}
+
+/* ---------- 滚动条 ---------- */
+.detail-body,.kb-content,.settings-card,.search-results{scrollbar-width:thin;
+  scrollbar-color:rgba(255,255,255,.2) transparent}
+.detail-body::-webkit-scrollbar,.kb-content::-webkit-scrollbar,.settings-card::-webkit-scrollbar{width:8px}
+.detail-body::-webkit-scrollbar-thumb,.kb-content::-webkit-scrollbar-thumb,.settings-card::-webkit-scrollbar-thumb{
+  background:rgba(255,255,255,.16);border-radius:8px}
+.detail-body::-webkit-scrollbar-track,.kb-content::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- 环境适配 ---------- */
+@media (max-width:767px){
+  :root{--lg-blur:saturate(160%) blur(13px);--lg-blur-soft:saturate(150%) blur(9px)}
+}
+@media (orientation:landscape) and (max-height:500px){
+  .detail-panel{border-radius:18px 0 0 18px}
+}
+@media (prefers-reduced-transparency:reduce){
+  .sun-overview,.detail-panel,.settings-card,.kb-card,.kb-overlay,.search-results,.icon-btn,.layer-btn{
+    background-color:rgba(8,16,27,.92);backdrop-filter:none;-webkit-backdrop-filter:none}
+}
+@supports not ((backdrop-filter:blur(8px)) or (-webkit-backdrop-filter:blur(8px))){
+  .sun-overview,.detail-panel,.settings-card,.kb-card,.kb-overlay,.search-results,.icon-btn,.layer-btn,
+  .zoom-controls,.explode-ctl,.coord-readout,.kb-search,.kb-cat,.search input,.tooltip,.toast-msg{
+    background-color:rgba(8,16,27,.9)}
+}
 </style>
 </head>
 <body>
@@ -628,13 +883,17 @@ body.panel-open .sun-overview{opacity:0;transform:translateX(16px);pointer-event
 
   <!-- 太阳直射点概况图 -->
   <div class="sun-overview" id="sunOverview">
-    <button class="so-head" id="soToggle" aria-expanded="true">
-      <span class="so-title">太阳直射点概况</span>
+    <div class="so-head" id="soToggle" role="button" tabindex="0" aria-expanded="true" aria-label="太阳直射点概况：点击折叠，按住可拖动">
+      <span class="so-title"><span class="so-grip" aria-hidden="true"><i></i><i></i><i></i><i></i></span>太阳直射点概况</span>
       <span class="so-head-right">
         <b class="so-dec-head" id="soDecHead"></b>
+        <button class="so-lock" id="soLock" type="button" aria-label="锁定概况图位置" aria-pressed="false" title="锁定位置">
+          <svg class="ic-unlocked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2.4"/><path d="M8 11V7.8A4 4 0 0 1 16 7.8"/></svg>
+          <svg class="ic-locked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2.4"/><path d="M8 11V7.8A4 4 0 0 1 16 7.8V11"/></svg>
+        </button>
         <svg class="so-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>
       </span>
-    </button>
+    </div>
     <div class="so-body">
       <div class="so-date-row"><span class="so-date" id="soDate"></span></div>
       <svg class="so-svg" id="soEarth" viewBox="0 0 250 132" role="img" aria-label="直射纬度侧视示意"></svg>
@@ -2919,17 +3178,143 @@ function syncOverview(){
   const ov=$('sunOverview'); if(ov) ov.classList.toggle('show', state.layer==='natural');
 }
 function setupOverview(){
-  const ov=$('sunOverview'), toggle=$('soToggle');
+  const ov=$('sunOverview'), head=$('soToggle'), lockBtn=$('soLock');
   if(!ov) return;
   const compact = window.innerWidth<768 && matchMedia('(orientation:portrait)').matches;
   ov.classList.toggle('collapsed', compact);
-  if(toggle){
-    toggle.setAttribute('aria-expanded', String(!compact));
-    toggle.addEventListener('click',()=>{
+  if(head) head.setAttribute('aria-expanded', String(!compact));
+
+  /* ---------- 位置持久化与锁定状态 ---------- */
+  const POS_KEY='geo_sun_pos_v1', LOCK_KEY='geo_sun_lock_v1';
+  let locked=false;
+  try{ locked = localStorage.getItem(LOCK_KEY)==='1'; }catch(e){}
+
+  const paintLock=()=>{
+    ov.classList.toggle('locked', locked);
+    if(lockBtn){
+      lockBtn.setAttribute('aria-pressed', String(locked));
+      lockBtn.title = locked ? '已锁定 · 点击解锁' : '锁定位置';
+      lockBtn.setAttribute('aria-label', locked ? '解锁概况图位置' : '锁定概况图位置');
+    }
+    if(head) head.setAttribute('aria-label', locked
+      ? '太阳直射点概况：点击折叠（位置已锁定）'
+      : '太阳直射点概况：点击折叠，按住可拖动');
+  };
+  const clampPos=(l,t)=>{
+    const w=ov.offsetWidth||252, h=ov.offsetHeight||140, m=8;
+    const maxL=Math.max(m, window.innerWidth-w-m);
+    const maxT=Math.max(m, window.innerHeight-h-m);
+    return [Math.round(Math.min(Math.max(l,m),maxL)), Math.round(Math.min(Math.max(t,m),maxT))];
+  };
+  const place=(l,t,persist)=>{
+    const [cl,ct]=clampPos(l,t);
+    ov.classList.add('placed','moved');
+    ov.style.right='auto'; ov.style.bottom='auto';
+    ov.style.left=cl+'px'; ov.style.top=ct+'px';
+    if(persist){ try{ localStorage.setItem(POS_KEY, JSON.stringify({l:cl,t:ct})); }catch(e){} }
+  };
+  const resetPos=(quiet)=>{
+    ov.classList.remove('placed','moved','dragging');
+    ov.style.left=''; ov.style.top=''; ov.style.right=''; ov.style.bottom='';
+    try{ localStorage.removeItem(POS_KEY); }catch(e){}
+    if(!quiet && typeof toast==='function') toast('概况图位置已复位');
+  };
+  try{
+    const raw=localStorage.getItem(POS_KEY);
+    if(raw){
+      const p=JSON.parse(raw);
+      if(p && typeof p.l==='number' && typeof p.t==='number') place(p.l,p.t,false);
+    }
+  }catch(e){}
+
+  const setLock=(v,quiet)=>{
+    locked=!!v; paintLock();
+    try{ localStorage.setItem(LOCK_KEY, locked?'1':'0'); }catch(e){}
+    if(!quiet && typeof toast==='function') toast(locked?'位置已锁定，无法拖动':'位置已解锁，可自由拖动');
+  };
+  paintLock();
+  if(lockBtn){
+    lockBtn.addEventListener('pointerdown',e=>e.stopPropagation());
+    lockBtn.addEventListener('click',e=>{ e.stopPropagation(); setLock(!locked); });
+  }
+
+  /* ---------- 折叠展开 ---------- */
+  let suppressClick=false;
+  if(head){
+    head.addEventListener('click',e=>{
+      if(e.target.closest('#soLock')) return;
+      if(suppressClick){ suppressClick=false; return; }
       const c=ov.classList.toggle('collapsed');
-      toggle.setAttribute('aria-expanded', String(!c));
+      head.setAttribute('aria-expanded', String(!c));
+    });
+    head.addEventListener('keydown',e=>{
+      if(e.key!=='Enter' && e.key!==' ' && e.key!=='Spacebar') return;
+      if(e.target!==head) return;
+      e.preventDefault();
+      const c=ov.classList.toggle('collapsed');
+      head.setAttribute('aria-expanded', String(!c));
     });
   }
+
+  /* ---------- 按住拖动 ---------- */
+  let drag=null, hintAt=0;
+  if(head){
+    head.addEventListener('pointerdown',e=>{
+      if(e.pointerType==='mouse' && e.button!==0) return;
+      if(e.target.closest('#soLock')) return;
+      const r=ov.getBoundingClientRect();
+      drag={id:e.pointerId,x:e.clientX,y:e.clientY,l:r.left,t:r.top,moved:false};
+      try{ head.setPointerCapture(e.pointerId); }catch(err){}
+    });
+    head.addEventListener('pointermove',e=>{
+      if(!drag || e.pointerId!==drag.id) return;
+      const dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+      if(!drag.moved){
+        if(Math.abs(dx)+Math.abs(dy)<6) return;
+        drag.moved=true;
+        if(locked){
+          if(Date.now()-hintAt>2400){
+            hintAt=Date.now();
+            if(typeof toast==='function') toast('位置已锁定，点锁图标解锁后可拖动');
+          }
+          suppressClick=true;
+          setTimeout(()=>{ suppressClick=false; }, 420);
+          return;
+        }
+        ov.classList.add('dragging');
+      }
+      if(locked) return;
+      place(drag.l+dx, drag.t+dy, false);
+    });
+    const endDrag=e=>{
+      if(!drag || (e && e.pointerId!==drag.id)) return;
+      const moved=drag.moved && !locked;
+      drag=null;
+      ov.classList.remove('dragging');
+      if(moved){
+        const l=parseFloat(ov.style.left), t=parseFloat(ov.style.top);
+        if(isFinite(l) && isFinite(t)) place(l,t,true);
+        suppressClick=true;
+        setTimeout(()=>{ suppressClick=false; }, 420);
+      }
+    };
+    head.addEventListener('pointerup',endDrag);
+    head.addEventListener('pointercancel',endDrag);
+    head.addEventListener('lostpointercapture',endDrag);
+    /* 双击标题：位置复位到默认停靠点 */
+    head.addEventListener('dblclick',e=>{
+      if(e.target.closest('#soLock')) return;
+      if(!ov.classList.contains('placed')) return;
+      resetPos(false);
+    });
+  }
+
+  /* ---------- 尺寸变化时不出视野 ---------- */
+  window.addEventListener('resize',()=>{
+    if(!ov.classList.contains('placed')) return;
+    const l=parseFloat(ov.style.left), t=parseFloat(ov.style.top);
+    if(isFinite(l) && isFinite(t)) place(l,t,true);
+  });
 }
 /* 侧视地球：按直射纬度标出直射点、赤道与南北回归线 */
 function renderSoEarth(dec){
