@@ -272,11 +272,13 @@ body.panel-open .sun-overview{opacity:0;transform:translateX(16px);pointer-event
   .sun-overview{right:22px;bottom:70px}
 }
 @media (max-width:767px) and (orientation:portrait){
-  .sun-overview{right:10px;bottom:70px;width:216px;padding:10px 12px}
-  .sun-overview.collapsed{width:auto;max-width:190px}
+  .sun-overview{right:10px;bottom:calc(var(--dock-h) + 58px);width:216px;padding:10px 12px}
+  .sun-overview.collapsed{width:auto;max-width:196px}
+  .so-head{gap:6px}
 }
 @media (max-width:420px){
-  .sun-overview{right:10px;bottom:70px}
+  .sun-overview{right:10px;bottom:calc(var(--dock-h) + 58px);width:208px}
+  .sun-overview.collapsed{max-width:184px}
 }
 
 /* ============ 悬浮提示 ============ */
@@ -413,7 +415,7 @@ body.panel-open .sun-overview{opacity:0;transform:translateX(16px);pointer-event
   .zoom-controls button{width:28px;height:28px;font-size:16px}
   #resetView{padding:0 10px;font-size:11px}
   .coord-readout{right:10px;bottom:10px;padding:6px 10px;font-size:11px}
-  .sun-overview{right:10px;bottom:56px;width:236px;padding:10px 11px}
+  .sun-overview{right:10px;bottom:calc(var(--dock-h) + 46px);width:236px;padding:10px 11px}
 }
 
 @media (prefers-reduced-motion:reduce){
@@ -1346,7 +1348,7 @@ let renderer, scene, camera, controls;
 let earthGroup, earthMesh, cloudsMesh, atmosphere, stars;
 let landmarkGroup, currentGroup, climateSphere, layerGroup, plateGroup, quakeGroup;
 let plateMeshes=[], quakeMeshes=[], plateLabelObjs=[], quakeLabelObjs=[];
-let sunLight, solarGroup, solarGlow, solarLabel;
+let sunLight, solarGroup, solarGlow, solarBall;
 let labelRenderer, countryLabelObjs=[], cityLabelObjs=[], islandLabelObjs=[], featureLabelObjs=[];
 let kbOpen=false, kbActiveCat=0, kbQuery='';
 const clock = new THREE.Clock();
@@ -1446,7 +1448,7 @@ function fmtHour(h){
   return `${hh}小时${mm?mm+'分':''}`;
 }
 
-/* 直射点地表标记（暖金色，区别于建筑青色） */
+/* 直射点：悬浮在地表上方的发光小球，模拟太阳 */
 function createSolarMarker(){
   solarGroup = new THREE.Group();
   const glowTex = makeGlowTexture();
@@ -1454,18 +1456,21 @@ function createSolarMarker(){
   solarGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), normal);
   solarGroup.position.copy(normal);
 
-  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.008,0.1,10),
-    new THREE.MeshBasicMaterial({color:0xffc24d, transparent:true, opacity:0.95}));
-  pole.position.y=0.05;
-  const core = new THREE.Mesh(new THREE.SphereGeometry(0.036,24,24),
-    new THREE.MeshBasicMaterial({color:0xffd27a}));
-  core.position.y=0.115;
+  const FLOAT = 0.075;
   solarGlow = new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,
     color:0xffb24d, transparent:true, opacity:0.9, depthWrite:false, blending:THREE.AdditiveBlending}));
-  solarGlow.position.y=0.115; solarGlow.scale.set(0.18,0.18,1);
-  solarLabel = makeLayerLabel('太阳直射点','#ffd25c',0.46,0.13);
-  solarLabel.position.y=0.21; solarLabel.material.opacity=1;
-  solarGroup.add(pole,core,solarGlow,solarLabel);
+  solarGlow.position.y=FLOAT; solarGlow.scale.set(0.2,0.2,1);
+
+  solarBall = new THREE.Group();
+  const shell = new THREE.Mesh(new THREE.SphereGeometry(0.042,24,24),
+    new THREE.MeshBasicMaterial({color:0xffc24d}));
+  const core = new THREE.Mesh(new THREE.SphereGeometry(0.024,20,20),
+    new THREE.MeshBasicMaterial({color:0xfff3c4}));
+  core.position.set(0.012,0.012,0.012);
+  solarBall.add(shell,core);
+  solarBall.position.y=FLOAT;
+
+  solarGroup.add(solarGlow,solarBall);
   earthGroup.add(solarGroup);
 }
 
@@ -1484,8 +1489,13 @@ function updateSolarPulse(){
   if(!solarGlow || !solarGroup.visible) return;
   const t=clock.elapsedTime;
   const s=1+Math.sin(t*2.4)*0.12;
-  solarGlow.scale.set(0.18*s,0.18*s,1);
+  solarGlow.scale.set(0.2*s,0.2*s,1);
   solarGlow.material.opacity=0.75+0.2*Math.sin(t*2.4);
+  if(solarBall){
+    solarBall.position.y=0.075+Math.sin(t*1.6)*0.008;
+    const bs=1+Math.sin(t*2.4)*0.06;
+    solarBall.scale.set(bs,bs,bs);
+  }
 }
 
 /* ============ 地球本体 ============ */
