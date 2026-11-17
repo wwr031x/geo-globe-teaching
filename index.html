@@ -4584,6 +4584,7 @@ async function init(){
 
   initEarth(tex);
   if(!tex.clouds) cloudsMesh.visible = false;
+  updateSun(state.dayOfYear);   /* 先把定向光放到真实太阳方位，首帧就是亮的 */
 
   /* 先渲染出第一帧，再把加载页收起：不让用户干等 */
   animate();
@@ -4592,10 +4593,12 @@ async function init(){
   $('loaderBar').style.width='100%';
   $('loader').classList.add('done');
 
-  /* 开场镜头（有 gsap 才做） */
-  if(!reducedMotion && window.gsap){
+  /* 开场镜头：只在桌面播放，手机直接给出最终视角，避免先看到一片暗区 */
+  if(!reducedMotion && window.gsap && !isMobile){
     camera.position.set(0,1.6,4.4);
-    gsap.to(camera.position,{x:DEFAULT_CAMERA.x,y:DEFAULT_CAMERA.y,z:DEFAULT_CAMERA.z,duration:1.8,ease:'expo.out'});
+    gsap.to(camera.position,{x:DEFAULT_CAMERA.x,y:DEFAULT_CAMERA.y,z:DEFAULT_CAMERA.z,duration:1.6,ease:'expo.out'});
+  }else{
+    camera.position.copy(DEFAULT_CAMERA); controls.update();
   }
 
   /* 法线 / 高光 / 云层后台补齐，画面立刻可用，细节随后变清楚 */
