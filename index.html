@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://media.doubao.com" crossorigin>
 <link rel="dns-prefetch" href="https://media.doubao.com">
 <link rel="modulepreload" href="./vendor/three.module.js">
+<link rel="preload" as="image" crossorigin href="https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/Jo69bwpqAob08hxxnZdcVAEansf">
 <link rel="preload" as="script" href="./vendor/gsap.min.js">
 <link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap">
 <script type="importmap">
@@ -777,8 +778,16 @@ body.panel-open .sun-overview.moved.show{opacity:1;transform:none;pointer-events
 
 /* ---------- 环境适配 ---------- */
 @media (max-width:767px){
-  :root{--lg-blur:saturate(160%) blur(13px);--lg-blur-soft:saturate(150%) blur(9px)}
+  :root{--lg-blur:saturate(150%) blur(9px);--lg-blur-soft:saturate(140%) blur(5px)}
+  .search input,.icon-btn,.layer-btn,.coord-readout,.zoom-controls{-webkit-backdrop-filter:none;backdrop-filter:none}
 }
+/* 低性能档：实时模糊全部关掉，用更实的玻璃填充兜住质感 */
+body.perf-low *{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+body.perf-low .icon-btn,body.perf-low .layer-btn,body.perf-low .search input,
+body.perf-low .coord-readout,body.perf-low .zoom-controls,body.perf-low .sun-overview,
+body.perf-low .detail-panel,body.perf-low .settings-card,body.perf-low .bottom-dock{
+  background-color:rgba(9,16,26,.82)}
+body.perf-low .kb-overlay,body.perf-low .settings-modal{background-color:rgba(4,7,13,.72)}
 @media (orientation:landscape) and (max-height:500px){
   .detail-panel{border-radius:18px 0 0 18px}
 }
@@ -1658,7 +1667,8 @@ let qualityMode=(()=>{
 })();
 function getQualityPixelRatio(){
   const dpr=window.devicePixelRatio||1;
-  const cap=qualityMode==='hd2k'?(isMobile?2:2.25):(isMobile?1.5:1.75);
+  const low = document.body && document.body.classList.contains('perf-low');
+  const cap=low ? 1 : (qualityMode==='hd2k'?(isMobile?1.75:2.25):(isMobile?1.25:1.75));
   if(qualityMode!=='hd2k')return Math.max(1,Math.min(dpr,cap));
   return Math.max(1,Math.min(cap,2560/window.innerWidth,1600/window.innerHeight));
 }
@@ -1868,7 +1878,7 @@ function initEarth(textures){
   ['color','normal','spec','clouds'].forEach(k=>window.__applyTexQuality(textures[k]));
 
   /* 球面细分按设备分级：2K 档位下桌面更圆滑，移动端仍控制顶点开销 */
-  const SEG = isMobile ? 96 : 224;
+  const SEG = isMobile ? 64 : 224;
   earthMesh = new THREE.Mesh(
     new THREE.SphereGeometry(RADIUS, SEG, SEG),
     new THREE.MeshPhongMaterial({
@@ -1878,7 +1888,7 @@ function initEarth(textures){
   earthGroup.add(earthMesh);
 
   cloudsMesh = new THREE.Mesh(
-    new THREE.SphereGeometry(1.014, isMobile?64:160, isMobile?64:160),
+    new THREE.SphereGeometry(1.014, isMobile?48:160, isMobile?48:160),
     new THREE.MeshLambertMaterial({map:textures.clouds||null, transparent:true, opacity:0.62,
       alphaTest:0.015, depthWrite:false}));
   earthGroup.add(cloudsMesh);
@@ -2069,9 +2079,40 @@ function loadAll(){
 }
 
 /* ============ 主循环 ============ */
+let __frameNo = 0, __fpsT = 0, __fpsN = 0, __perfLow = false, __lowHit = 0, __okHit = 0, __perfWarm = 0;
+let __labDx = null, __ovT = 0;
+
+/* 帧率自适应：弱机自动降档（关玻璃模糊、降分辨率、减少 DOM 覆层刷新） */
+function governPerf(now){
+  __fpsN++; __frameNo++;
+  if(location.search.indexOf('noperf') >= 0) return;
+  /* 首屏后 3.5 秒内贴图还在上传，先不判档，避免误降 */
+  if(!__perfWarm || now - __perfWarm < 3500) return;
+  if(now - __fpsT < 1000) return;
+  const fps = __fpsN * 1000 / (now - __fpsT);
+  __fpsT = now; __fpsN = 0;
+  if(fps < 24){
+    __lowHit++; __okHit = 0;
+    if(__lowHit >= 2 && !__perfLow){
+      __perfLow = true;
+      document.body.classList.add('perf-low');
+      applyRenderQuality();
+    }
+  }else if(fps > 46){
+    __okHit++; __lowHit = 0;
+    if(__okHit >= 3 && __perfLow){
+      __perfLow = false;
+      document.body.classList.remove('perf-low');
+      applyRenderQuality();
+    }
+  }else{ __lowHit = 0; __okHit = 0; }
+}
+
 function animate(){
   requestAnimationFrame(animate);
   if(kbOpen) return;
+  const now = performance.now();
+  governPerf(now);
   const dt = clock.getDelta();
   if(!reducedMotion) cloudsMesh.rotation.y += dt * 0.008;
   if(stars) stars.rotation.y += dt * 0.0015;
@@ -2084,9 +2125,23 @@ function animate(){
   updateWavePanel(dt);
   updateSolarPulse();
   updateLabelLOD();
-  updateCoordReadout();
+  if(__frameNo % (__perfLow ? 6 : 4) === 0) updateCoordReadout();
   renderer.render(scene, camera);
-  if(labelRenderer){ labelRenderer.render(scene, camera); resolveLabelOverlap(); }
+
+  /* 标签：手机上隔帧刷新；重叠避让只在镜头动过、且不超过 4 次/秒时才做 */
+  if(labelRenderer){
+    /* 镜头没动就不碰标签 DOM：静止时几乎零开销 */
+    const camStamp = camera.position.x + camera.position.y*3 + camera.position.z*7
+      + controls.getAzimuthalAngle()*11;
+    if(__labDx === null || Math.abs(camStamp - __labDx) > 1e-4){
+      const every = __perfLow ? 3 : (isMobile ? 2 : 1);
+      if(__frameNo % every === 0 || Math.abs(camStamp - __labDx) > 0.02){
+        labelRenderer.render(scene, camera);
+        __labDx = camStamp;
+      }
+      if(now - __ovT > 260){ resolveLabelOverlap(); __ovT = performance.now(); }
+    }
+  }
 }
 
 window.addEventListener('resize', ()=>{
@@ -4596,6 +4651,7 @@ async function init(){
   clearTimeout(window.__slowTimer);
   $('loaderBar').style.width='100%';
   $('loader').classList.add('done');
+  __perfWarm = performance.now();
 
   /* 开场镜头：只在桌面播放，手机直接给出最终视角，避免先看到一片暗区 */
   if(!reducedMotion && window.gsap && !isMobile){
