@@ -9,11 +9,11 @@
 <link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap">
 <script type="importmap">
 { "imports": {
-  "three": "https://fastly.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-  "three/addons/": "https://fastly.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  "three": "./vendor/three.module.js",
+  "three/addons/": "./vendor/addons/"
 }}
 </script>
-<script src="https://fastly.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" defer></script>
+<script src="./vendor/gsap.min.js" defer></script>
 <style>
 /* ============ 设计令牌 ============ */
 :root{
@@ -1705,7 +1705,7 @@ const pointer = new THREE.Vector2();
 
 /* ============ 渲染器与场景 ============ */
 function initRenderer(){
-  renderer = new THREE.WebGLRenderer({antialias:true, stencil:false, powerPreference:'high-performance',
+  renderer = new THREE.WebGLRenderer({antialias:!isMobile, stencil:false, powerPreference:'high-performance',
     precision:'highp'});
   /* 像素比按画质模式动态计算；2K 模式限制实际缓冲，避免高分屏过度渲染 */
   renderer.setPixelRatio(getQualityPixelRatio());
@@ -1853,27 +1853,29 @@ function initEarth(textures){
 
   /* 各向异性过滤 + 高质量多级渐远，斜视与缩放时纹理依然清晰 */
   const maxAniso = renderer.capabilities.getMaxAnisotropy();
-  ['color','normal','spec','clouds'].forEach(k=>{
-    const tx=textures[k]; if(!tx)return;
+  window.__applyTexQuality = function(tx){
+    if(!tx)return tx;
     tx.anisotropy = maxAniso;
     tx.generateMipmaps = true;
     tx.minFilter = THREE.LinearMipmapLinearFilter;
     tx.magFilter = THREE.LinearFilter;
-  });
+    return tx;
+  };
+  ['color','normal','spec','clouds'].forEach(k=>window.__applyTexQuality(textures[k]));
 
   /* 球面细分按设备分级：2K 档位下桌面更圆滑，移动端仍控制顶点开销 */
-  const SEG = isMobile ? 128 : 224;
+  const SEG = isMobile ? 96 : 224;
   earthMesh = new THREE.Mesh(
     new THREE.SphereGeometry(RADIUS, SEG, SEG),
     new THREE.MeshPhongMaterial({
-      map:textures.color, normalMap:textures.normal, specularMap:textures.spec,
+      map:textures.color, normalMap:textures.normal||null, specularMap:textures.spec||null,
       specular:new THREE.Color(0x2a4458), shininess:18, normalScale:new THREE.Vector2(0.62,0.62)
     }));
   earthGroup.add(earthMesh);
 
   cloudsMesh = new THREE.Mesh(
-    new THREE.SphereGeometry(1.014, isMobile?96:160, isMobile?96:160),
-    new THREE.MeshLambertMaterial({map:textures.clouds, transparent:true, opacity:0.62,
+    new THREE.SphereGeometry(1.014, isMobile?64:160, isMobile?64:160),
+    new THREE.MeshLambertMaterial({map:textures.clouds||null, transparent:true, opacity:0.62,
       alphaTest:0.015, depthWrite:false}));
   earthGroup.add(cloudsMesh);
 
@@ -2043,22 +2045,23 @@ function onCityClick(i){
 }
 
 /* ============ 纹理加载与进度 ============ */
-function loadAll(){
+function loadTex(key){
   const loader = new THREE.TextureLoader();
   loader.setCrossOrigin('anonymous');
-  const keys = ['color','normal','spec','clouds'];
-  let done = 0;
+  return new Promise((resolve,reject)=>{
+    loader.load(TEX[key], t=>{
+      if(key==='color'||key==='clouds') t.colorSpace = THREE.SRGBColorSpace;
+      resolve(t);
+    }, undefined, reject);
+  });
+}
+/* 首屏只要主色贴图；法线/高光/云层随后补齐，避免卡在加载页 */
+function loadAll(){
   const sub = document.getElementById('loaderSub');
   const bar = document.getElementById('loaderBar');
-  const tex = {};
-  return Promise.all(keys.map(k => new Promise((resolve,reject)=>{
-    loader.load(TEX[k], t=>{
-      tex[k] = t; done++;
-      bar.style.width = (done/keys.length*100) + '%';
-      sub.textContent = `正在加载地理纹理（${done}/${keys.length}）`;
-      resolve();
-    }, undefined, reject);
-  }))).then(()=>tex);
+  bar.style.width = '35%';
+  sub.textContent = '正在加载地表影像…';
+  return loadTex('color').then(color=>({color}));
 }
 
 /* ============ 主循环 ============ */
@@ -4574,12 +4577,40 @@ function bindAll(){
    ============================================================ */
 async function init(){
   initRenderer(); initLights(); initStars();
+
   let tex;
   try{ tex = await loadAll(); }
-  catch(err){ $('loaderSub').textContent='纹理加载失败，请检查网络连接后刷新页面'; return; }
-  tex.color.colorSpace = THREE.SRGBColorSpace;
-  tex.clouds.colorSpace = THREE.SRGBColorSpace;
+  catch(err){ $('loaderSub').textContent='地表影像加载失败，请检查网络后重试'; $('loader').onclick=()=>location.reload(); return; }
+
   initEarth(tex);
+  if(!tex.clouds) cloudsMesh.visible = false;
+
+  /* 先渲染出第一帧，再把加载页收起：不让用户干等 */
+  animate();
+  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+  clearTimeout(window.__slowTimer);
+  $('loaderBar').style.width='100%';
+  $('loader').classList.add('done');
+
+  /* 开场镜头（有 gsap 才做） */
+  if(!reducedMotion && window.gsap){
+    camera.position.set(0,1.6,4.4);
+    gsap.to(camera.position,{x:DEFAULT_CAMERA.x,y:DEFAULT_CAMERA.y,z:DEFAULT_CAMERA.z,duration:1.8,ease:'expo.out'});
+  }
+
+  /* 法线 / 高光 / 云层后台补齐，画面立刻可用，细节随后变清楚 */
+  loadTex('normal').then(t=>{ window.__applyTexQuality(t); earthMesh.material.normalMap=t; earthMesh.material.needsUpdate=true; }).catch(()=>{});
+  loadTex('spec').then(t=>{ window.__applyTexQuality(t); earthMesh.material.specularMap=t; earthMesh.material.needsUpdate=true; }).catch(()=>{});
+  loadTex('clouds').then(t=>{ window.__applyTexQuality(t); cloudsMesh.material.map=t; cloudsMesh.material.needsUpdate=true; cloudsMesh.visible=true; }).catch(()=>{});
+
+  /* 标签与各专题图层：让出一帧后再建，手机上能立刻看到地球 */
+  await new Promise(r=>setTimeout(r,120));
+  try{ buildSceneExtras(); }catch(err){ console.warn('extras', err); }
+  bindAll();
+}
+
+/* 首帧之后才需要的内容 */
+function buildSceneExtras(){
   initLabelRenderer();
   createPlaceLabels();
   createClimateLayer(); createCurrentLayer();
@@ -4593,14 +4624,15 @@ async function init(){
   setupAdjustFocus();
   renderSunOverview();
   syncOverview();
-  bindAll();
-  if(!reducedMotion && window.gsap){
-    camera.position.set(0,1.6,4.4);
-    gsap.to(camera.position,{x:DEFAULT_CAMERA.x,y:DEFAULT_CAMERA.y,z:DEFAULT_CAMERA.z,duration:1.8,ease:'expo.out'});
-  }
-  animate();
-  setTimeout(()=>$('loader').classList.add('done'),500);
 }
+
+window.__slowTimer=setTimeout(()=>{
+  if($('loader') && !$('loader').classList.contains('done')){
+    $('loaderSub').textContent='加载较慢，点按此处重试';
+    $('loader').onclick=()=>location.reload();
+  }
+},10000);
+
 init();
 
 </script>
