@@ -1,0 +1,27 @@
+name: sync-index
+on:
+  push:
+    paths:
+      - .github/workflows/sync-index.yml
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch built page and vendor libs
+        run: |
+          mkdir -p vendor/addons/controls vendor/addons/renderers
+          curl -fsSL "https://aka.doubaocdn.com/s/VpPxPMXvaI" -o index.html
+          curl -fsSL "https://aka.doubaocdn.com/s/YNU9JdKJ9e" -o vendor/three.module.js
+          curl -fsSL "https://aka.doubaocdn.com/s/8I3otVnYMO" -o vendor/gsap.min.js
+          curl -fsSL "https://aka.doubaocdn.com/s/zU6VkoUPrd" -o vendor/addons/controls/OrbitControls.js
+          curl -fsSL "https://aka.doubaocdn.com/s/SVGiGg5ruH" -o vendor/addons/renderers/CSS2DRenderer.js
+          ls -l index.html vendor vendor/addons/controls
+      - name: Commit and push
+        run: |
+          git config user.name "terra-sync-bot"
+          git config user.email "terra-sync-bot@users.noreply.github.com"
+          git add -A index.html vendor
+          if git diff --cached --quiet; then echo "no change"; else git commit -m "perf: self-host three.js and progressive texture loading" && git push; fi
