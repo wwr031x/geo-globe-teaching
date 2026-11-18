@@ -1068,7 +1068,7 @@ body.adjust-mode #app > :not(#adjustFocus){
 <script>
 /* 引导器：优先取同源打包文件；失败或超时自动切备用直链，避免卡在加载页 */
 (function(){
-  var SRC=['./app.bundle.js?v=8','https://aka.doubaocdn.com/s/UVp5SUFtAQ'];
+  var SRC=['https://aka.doubaocdn.com/s/wKFJ27kEnf','./app.bundle.js?v=8'];
   var i=0,timer=null;
   window.__appStarted=function(){ if(timer){clearTimeout(timer);timer=null;} };
   function setSub(t,retry){
@@ -1084,7 +1084,7 @@ body.adjust-mode #app > :not(#adjustFocus){
     sc.type='module'; sc.async=true; sc.src=SRC[i];
     sc.onerror=function(){ step(); };
     document.body.appendChild(sc);
-    timer=setTimeout(function(){ if(!window.__geoBooted) step(); },12000);
+    timer=setTimeout(function(){ if(!window.__geoBooted) step(); },7000);
   }
   function step(){
     if(window.__geoBooted)return;
