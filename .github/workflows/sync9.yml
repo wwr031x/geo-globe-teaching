@@ -1,0 +1,23 @@
+name: sync9
+on:
+  push:
+    paths:
+      - '.github/workflows/sync9.yml'
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: fetch index
+        run: curl -sSL -A 'Mozilla/5.0' --fail --retry 5 -o index.html 'https://aka.doubaocdn.com/s/3oAyCassTI'
+      - name: fetch bundle
+        run: curl -sSL -A 'Mozilla/5.0' --fail --retry 5 -o app.bundle.js 'https://aka.doubaocdn.com/s/O1Lase6wKB'
+      - name: commit
+        run: |
+          git config user.name 'sync-bot'
+          git config user.email 'sync@bot.local'
+          git add -A
+          git commit -m 'sync 9: Liquid Glass UI, faster boot, bugfix pass' || echo 'no change'
+          git push
