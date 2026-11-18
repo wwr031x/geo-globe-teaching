@@ -864,11 +864,14 @@ body.adjust-mode #app > :not(#adjustFocus){
 .sec-legend .sl-n{min-width:52px;font-weight:600}
 .sec-legend .sl-d{color:#93aebf;font-variant-numeric:tabular-nums}
 @media (max-width:767px){
-  .sec-legend{left:12px;right:12px;bottom:calc(var(--dock-h) + 86px);
-    display:none;grid-template-columns:1fr 1fr;gap:0 10px;padding:10px 12px}
+  .sec-legend{left:10px;right:10px;top:104px;bottom:auto;
+    display:none;grid-template-columns:1fr 1fr 1fr;gap:0 8px;padding:9px 10px;border-radius:14px}
   .sec-legend.on{display:grid}
-  .sec-legend .sl-row{font-size:11.5px}
-  .sec-legend .sl-n{min-width:44px}
+  .sec-legend .sl-row{font-size:10.5px;gap:5px;padding:2px 0}
+  .sec-legend .sl-row i{width:7px;height:7px}
+  .sec-legend .sl-n{min-width:0;font-weight:600;white-space:nowrap}
+  .sec-legend .sl-d{white-space:nowrap}
+  .sec-legend .sl-d{font-size:9.5px;color:#8fa9ba}
 }
 </style>
 </head>
