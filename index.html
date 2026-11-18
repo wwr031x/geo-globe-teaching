@@ -247,6 +247,7 @@ body.panel-open .coord-readout{opacity:0;transform:translateX(16px);pointer-even
   opacity:0;transform:translateX(16px);pointer-events:none;
   transition:opacity .3s ease,transform .3s ease}
 .sun-overview.show{opacity:1;transform:translateX(0);pointer-events:auto}
+body.solar-mode .sun-overview{opacity:0!important;transform:translateX(16px)!important;pointer-events:none!important}
 body.panel-open .sun-overview{opacity:0;transform:translateX(16px);pointer-events:none}
 .so-head{display:flex;justify-content:space-between;align-items:center;gap:8px;
   width:100%;cursor:pointer;background:none;border:none;color:inherit;font-family:inherit;padding:0}
@@ -884,6 +885,7 @@ body.adjust-mode #app > :not(#adjustFocus){
 .dp-thumb.active{opacity:1;border-color:var(--accent, #36c8a0);box-shadow:0 0 0 1px rgba(54,200,160,.35)}
 
 .dp-photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:9px 0 4px}
+.dp-photo-grid > :only-child{grid-column:1 / -1}
 .dp-photo-grid img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;
   border:1px solid rgba(140,200,220,.14);background:#0b151c;display:block}
 </style>
@@ -1106,7 +1108,7 @@ body.adjust-mode #app > :not(#adjustFocus){
 <script>
 /* 引导器：优先取同源打包文件；失败或超时自动切备用直链，避免卡在加载页 */
 (function(){
-  var SRC=['https://aka.doubaocdn.com/s/O1Lase6wKB','./app.bundle.js?v=15'];
+  var SRC=['https://aka.doubaocdn.com/s/LZlMdgTzDS','./app.bundle.js?v=16'];
   var i=0,timer=null;
   window.__appStarted=function(){ if(timer){clearTimeout(timer);timer=null;} };
   function setSub(t,retry){
