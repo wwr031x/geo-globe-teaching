@@ -1,0 +1,24 @@
+name: sync6
+on:
+  push:
+    paths:
+      - '.github/workflows/sync6.yml'
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: fetch
+        run: |
+          curl -sSL -A 'Mozilla/5.0' --fail --retry 5 --retry-delay 2 -o index.html 'https://aka.doubaocdn.com/s/hwBjJwQgBM'
+          curl -sSL -A 'Mozilla/5.0' --fail --retry 5 --retry-delay 2 -o app.bundle.js 'https://aka.doubaocdn.com/s/xuoZF8MM6b'
+          ls -l index.html app.bundle.js
+      - name: commit
+        run: |
+          git config user.name github-actions
+          git config user.email actions@github.com
+          git add index.html app.bundle.js
+          git commit -m 'feat: detailed 3D landmark models + photo gallery' || echo 'nothing to commit'
+          git push
