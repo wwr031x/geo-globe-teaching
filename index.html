@@ -852,6 +852,24 @@ body.adjust-mode #app > :not(#adjustFocus){
   border:1px solid rgba(120,200,220,.18);overflow:hidden}
 .lm3d canvas{display:block;width:100%;height:100%;cursor:grab}
 .lm3d .lm3d-tip{position:absolute;left:10px;bottom:8px;font-size:11px;color:#8fb3c4;letter-spacing:.04em}
+
+/* 圈层图例（HTML，保证完整显示） */
+.sec-legend{position:absolute;left:248px;bottom:96px;z-index:22;display:none;
+  padding:12px 14px;border-radius:16px;background:rgba(10,20,28,.62);
+  border:1px solid rgba(140,200,220,.18);backdrop-filter:blur(14px);
+  box-shadow:0 16px 40px rgba(0,0,0,.42)}
+.sec-legend.on{display:block}
+.sec-legend .sl-row{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12.5px;color:#d5e5ef}
+.sec-legend .sl-row i{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 8px currentColor}
+.sec-legend .sl-n{min-width:52px;font-weight:600}
+.sec-legend .sl-d{color:#93aebf;font-variant-numeric:tabular-nums}
+@media (max-width:767px){
+  .sec-legend{left:12px;right:12px;bottom:calc(var(--dock-h) + 86px);
+    display:none;grid-template-columns:1fr 1fr;gap:0 10px;padding:10px 12px}
+  .sec-legend.on{display:grid}
+  .sec-legend .sl-row{font-size:11.5px}
+  .sec-legend .sl-n{min-width:44px}
+}
 </style>
 </head>
 <body>
@@ -939,6 +957,7 @@ body.adjust-mode #app > :not(#adjustFocus){
   </nav>
 
   <!-- 详情面板 -->
+  <div class="sec-legend" id="secLegend"></div>
   <aside class="detail-panel interactive" id="detailPanel">
     <div class="detail-grab"></div>
     <button class="detail-close" id="detailClose" aria-label="关闭">
@@ -1071,7 +1090,7 @@ body.adjust-mode #app > :not(#adjustFocus){
 <script>
 /* 引导器：优先取同源打包文件；失败或超时自动切备用直链，避免卡在加载页 */
 (function(){
-  var SRC=['https://aka.doubaocdn.com/s/fp0Ibp9g89','./app.bundle.js?v=10'];
+  var SRC=['https://aka.doubaocdn.com/s/6lnj6Ar4KX','./app.bundle.js?v=11'];
   var i=0,timer=null;
   window.__appStarted=function(){ if(timer){clearTimeout(timer);timer=null;} };
   function setSub(t,retry){
