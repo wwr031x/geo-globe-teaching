@@ -882,6 +882,10 @@ body.adjust-mode #app > :not(#adjustFocus){
 .dp-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .dp-thumb:hover{opacity:.85;transform:translateY(-1px)}
 .dp-thumb.active{opacity:1;border-color:var(--accent, #36c8a0);box-shadow:0 0 0 1px rgba(54,200,160,.35)}
+
+.dp-photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:9px 0 4px}
+.dp-photo-grid img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;
+  border:1px solid rgba(140,200,220,.14);background:#0b151c;display:block}
 </style>
 </head>
 <body>
@@ -1102,7 +1106,7 @@ body.adjust-mode #app > :not(#adjustFocus){
 <script>
 /* 引导器：优先取同源打包文件；失败或超时自动切备用直链，避免卡在加载页 */
 (function(){
-  var SRC=['https://aka.doubaocdn.com/s/dnNAucF2HP','./app.bundle.js?v=14'];
+  var SRC=['https://aka.doubaocdn.com/s/O1Lase6wKB','./app.bundle.js?v=15'];
   var i=0,timer=null;
   window.__appStarted=function(){ if(timer){clearTimeout(timer);timer=null;} };
   function setSub(t,retry){
@@ -1115,10 +1119,11 @@ body.adjust-mode #app > :not(#adjustFocus){
   function load(){
     if(window.__geoBooted||i>=SRC.length)return;
     var sc=document.createElement('script');
-    sc.type='module'; sc.async=true; sc.src=SRC[i];
+    /* 打包产物无 import/export，用传统脚本方式加载，避免 CDN 302 跳转触发模块 CORS 限制 */
+    sc.async=true; sc.src=SRC[i];
     sc.onerror=function(){ step(); };
     document.body.appendChild(sc);
-    timer=setTimeout(function(){ if(!window.__geoBooted) step(); },7000);
+    timer=setTimeout(function(){ if(!window.__geoBooted) step(); },4500);
   }
   function step(){
     if(window.__geoBooted)return;
