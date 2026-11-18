@@ -873,6 +873,15 @@ body.adjust-mode #app > :not(#adjustFocus){
   .sec-legend .sl-d{white-space:nowrap}
   .sec-legend .sl-d{font-size:9.5px;color:#8fa9ba}
 }
+
+/* 地标相册 */
+.dp-gallery{display:flex;gap:7px;margin:9px 0 2px}
+.dp-thumb{flex:0 0 auto;width:62px;height:46px;padding:0;border-radius:9px;overflow:hidden;
+  border:1px solid rgba(140,200,220,.16);background:rgba(10,22,30,.6);cursor:pointer;
+  opacity:.55;transition:opacity .18s,border-color .18s,transform .18s}
+.dp-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.dp-thumb:hover{opacity:.85;transform:translateY(-1px)}
+.dp-thumb.active{opacity:1;border-color:var(--accent, #36c8a0);box-shadow:0 0 0 1px rgba(54,200,160,.35)}
 </style>
 </head>
 <body>
@@ -1093,7 +1102,7 @@ body.adjust-mode #app > :not(#adjustFocus){
 <script>
 /* 引导器：优先取同源打包文件；失败或超时自动切备用直链，避免卡在加载页 */
 (function(){
-  var SRC=['https://aka.doubaocdn.com/s/XJEVbHpTGK','./app.bundle.js?v=12'];
+  var SRC=['https://aka.doubaocdn.com/s/xuoZF8MM6b','./app.bundle.js?v=13'];
   var i=0,timer=null;
   window.__appStarted=function(){ if(timer){clearTimeout(timer);timer=null;} };
   function setSub(t,retry){
