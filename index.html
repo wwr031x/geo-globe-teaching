@@ -918,6 +918,9 @@ body.adjust-mode #app > :not(#adjustFocus){
     <button class="layer-btn" data-layer="landmark">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10l5-3v13M12 20V4l5 3v13M19 20v-8l3 2v6M3 20h19"/></svg>
       特色建筑</button>
+    <button class="layer-btn" data-layer="mountain">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 19l6-10 4 6 4-7 6 11z"/><path d="M8 9l2 3 2-2"/></svg>
+      山脉</button>
     <button class="layer-btn" data-layer="china">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l5-9 4 5 3-4 6 8"/><path d="M3 20h18"/><circle cx="16" cy="6" r="2"/></svg>
       中国地理</button>
@@ -1068,7 +1071,7 @@ body.adjust-mode #app > :not(#adjustFocus){
 <script>
 /* 引导器：优先取同源打包文件；失败或超时自动切备用直链，避免卡在加载页 */
 (function(){
-  var SRC=['https://aka.doubaocdn.com/s/K3xwOY5xDw','./app.bundle.js?v=9'];
+  var SRC=['https://aka.doubaocdn.com/s/fp0Ibp9g89','./app.bundle.js?v=10'];
   var i=0,timer=null;
   window.__appStarted=function(){ if(timer){clearTimeout(timer);timer=null;} };
   function setSub(t,retry){
