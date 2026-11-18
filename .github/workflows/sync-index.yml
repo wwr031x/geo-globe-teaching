@@ -1,0 +1,24 @@
+name: sync-assets
+on:
+  push:
+    paths:
+      - '.github/workflows/sync-index.yml'
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: fetch
+        run: |
+          curl -L --fail --retry 3 -o index.html "https://aka.doubaocdn.com/s/6NHG2P7dcz"
+          curl -L --fail --retry 3 -o app.bundle.js "https://aka.doubaocdn.com/s/wKFJ27kEnf"
+          ls -l index.html app.bundle.js
+      - name: commit
+        run: |
+          git config user.name github-actions
+          git config user.email actions@github.com
+          git add index.html app.bundle.js
+          git commit -m "sync: liquid glass, section view, china layer, 3d landmark" || echo "nothing to commit"
+          git push
