@@ -679,6 +679,10 @@ body.panel-open .sun-overview{opacity:0;transform:translateX(16px);pointer-event
 .so-title{display:inline-flex;align-items:center;gap:6px}
 .so-grip{display:inline-flex;flex-wrap:wrap;width:10px;height:10px;gap:2px;opacity:.5;flex:none}
 .so-grip i{width:4px;height:4px;border-radius:50%;background:currentColor;display:block}
+.so-reset{display:none;width:24px;height:24px;border-radius:9px;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:var(--muted);cursor:pointer;transition:.2s}
+.sun-overview.placed .so-reset{display:flex}
+.so-reset:hover{color:#fff;border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.12)}
+.so-reset svg{width:13px;height:13px}
 .so-lock{width:24px;height:24px;border-radius:9px;display:flex;align-items:center;justify-content:center;
   color:#9fb2c4;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.055);
   transition:all .22s;flex:none}
@@ -1016,6 +1020,9 @@ body.adjust-mode #app > :not(#adjustFocus){
       <span class="so-title"><span class="so-grip" aria-hidden="true"><i></i><i></i><i></i><i></i></span>太阳直射点概况</span>
       <span class="so-head-right">
         <b class="so-dec-head" id="soDecHead"></b>
+        <button class="so-reset" id="soReset" type="button" aria-label="复位概况图位置" title="复位到默认位置">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+        </button>
         <button class="so-lock" id="soLock" type="button" aria-label="锁定概况图位置" aria-pressed="false" title="锁定位置">
           <svg class="ic-unlocked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2.4"/><path d="M8 11V7.8A4 4 0 0 1 16 7.8"/></svg>
           <svg class="ic-locked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2.4"/><path d="M8 11V7.8A4 4 0 0 1 16 7.8V11"/></svg>
@@ -1114,7 +1121,7 @@ body.adjust-mode #app > :not(#adjustFocus){
 <script>
 /* 引导器：优先取同源打包文件；失败或超时自动切备用直链，避免卡在加载页 */
 (function(){
-  var SRC=['https://aka.doubaocdn.com/s/7H2OeGPozH','./app.bundle.js?v=17'];
+  var SRC=['https://aka.doubaocdn.com/s/KviuMAoh7D','./app.bundle.js?v=18'];
   var i=0,timer=null;
   window.__appStarted=function(){ if(timer){clearTimeout(timer);timer=null;} };
   function setSub(t,retry){
