@@ -72,13 +72,17 @@ input{font-family:inherit}
   border:1px solid var(--line-strong);border-radius:10px;max-height:320px;overflow-y:auto;
   display:none;box-shadow:0 18px 44px rgba(0,0,0,.5)}
 .search-results.open{display:block}
+@media (max-width:767px){
+  .search-results{position:fixed;left:12px;right:12px;top:58px;max-height:46vh}
+  .search-results .sr-item{padding:12px 14px}
+}
 .sr-item{display:flex;align-items:center;gap:10px;padding:10px 12px;width:100%;text-align:left;
   border-bottom:1px solid var(--line)}
 .sr-item:last-child{border-bottom:none}
 .sr-item:hover{background:rgba(56,214,187,.08)}
 .sr-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.sr-name{font-size:13.5px;font-weight:500}
-.sr-meta{font-size:11.5px;color:var(--muted);margin-top:2px}
+.sr-name{font-size:13.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr-meta{font-size:11.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sr-kind{margin-left:auto;font-size:10.5px;color:var(--faint);font-family:var(--font-display);
   border:1px solid var(--line);border-radius:5px;padding:2px 6px;flex-shrink:0}
 
@@ -106,7 +110,9 @@ input{font-family:inherit}
   transform:translateY(105%);transition:transform .45s cubic-bezier(.22,1,.36,1);
   display:flex;flex-direction:column;box-shadow:0 -20px 50px rgba(0,0,0,.45)}
 .detail-panel.open{transform:translateY(0)}
-.detail-grab{width:38px;height:4px;border-radius:2px;background:var(--line-strong);margin:10px auto 4px;flex-shrink:0}
+.detail-grab{width:38px;height:4px;border-radius:2px;background:var(--line-strong);margin:10px auto 4px;flex-shrink:0;touch-action:none;cursor:grab;position:relative}
+.detail-grab::after{content:"";position:absolute;left:-60px;right:-60px;top:-12px;bottom:-14px}
+.detail-panel.sheet-drag{transition:none!important}
 .detail-close{position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:8px;
   display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:18px}
 .detail-close:hover{background:rgba(255,255,255,.07);color:var(--text)}
@@ -1108,7 +1114,7 @@ body.adjust-mode #app > :not(#adjustFocus){
 <script>
 /* 引导器：优先取同源打包文件；失败或超时自动切备用直链，避免卡在加载页 */
 (function(){
-  var SRC=['https://aka.doubaocdn.com/s/LZlMdgTzDS','./app.bundle.js?v=16'];
+  var SRC=['https://aka.doubaocdn.com/s/7H2OeGPozH','./app.bundle.js?v=17'];
   var i=0,timer=null;
   window.__appStarted=function(){ if(timer){clearTimeout(timer);timer=null;} };
   function setSub(t,retry){
