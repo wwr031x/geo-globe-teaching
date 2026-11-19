@@ -1,0 +1,24 @@
+name: sync11
+on:
+  push:
+    paths:
+      - '.github/workflows/sync11.yml'
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: fetch from cdn
+        run: |
+          curl -sSL -A 'Mozilla/5.0' --fail --retry 5 -o index.html 'https://aka.doubaocdn.com/s/3Jyt2UYJE3'
+          curl -sSL -A 'Mozilla/5.0' --fail --retry 5 -o app.bundle.js 'https://aka.doubaocdn.com/s/7H2OeGPozH'
+          ls -l index.html app.bundle.js
+      - name: commit
+        run: |
+          git config user.name 'sync-bot'
+          git config user.email 'sync-bot@users.noreply.github.com'
+          git add index.html app.bundle.js
+          git commit -m 'deploy: interaction fixes v17' || echo 'no change'
+          git push
