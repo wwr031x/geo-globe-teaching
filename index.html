@@ -504,9 +504,9 @@ body.panel-open .sun-overview{opacity:0;transform:translateX(16px);pointer-event
 .sg-key{display:inline-block;min-width:64px;color:var(--teal);font-weight:600}
 .set-row{margin-bottom:18px}
 .quality-switch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-.quality-opt{height:42px;border-radius:10px;border:1px solid var(--line-strong);
+.quality-opt,.surface-opt{height:42px;border-radius:10px;border:1px solid var(--line-strong);
   background:var(--panel);font-size:13px;color:var(--muted);transition:all .22s}
-.quality-opt.active{border-color:var(--teal);color:var(--teal);background:var(--teal-dim)}
+.quality-opt.active,.surface-opt.active{border-color:var(--teal);color:var(--teal);background:var(--teal-dim)}
 .quality-note{font-size:11.5px;color:var(--faint);line-height:1.55;margin-top:8px}
 .set-label{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#c3d2df;margin-bottom:10px}
 .set-label b{font-family:var(--font-display);color:var(--teal);font-variant-numeric:tabular-nums;font-weight:600}
@@ -756,12 +756,12 @@ body.panel-open .sun-overview.moved.show{opacity:1;transform:none;pointer-events
   box-shadow:var(--lg-inner),0 30px 70px rgba(0,0,0,.55);overflow:hidden;position:relative}
 .settings-card::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
   background:radial-gradient(120% 50% at 12% -8%,rgba(255,255,255,.18) 0%,rgba(255,255,255,0) 60%)}
-.set-guide,.quality-opt{background-color:rgba(255,255,255,.05);background-image:var(--lg-fill-soft);
+.set-guide,.quality-opt,.surface-opt{background-color:rgba(255,255,255,.05);background-image:var(--lg-fill-soft);
   border-color:rgba(255,255,255,.13);box-shadow:inset 0 1px 0 rgba(255,255,255,.16)}
-.set-guide,.set-reset,.quality-opt{border-radius:13px}
+.set-guide,.set-reset,.quality-opt,.surface-opt{border-radius:13px}
 .set-guide{position:relative;z-index:1}
 .set-row,.set-head,.set-reset{position:relative;z-index:1}
-.quality-opt.active{border-color:rgba(56,214,187,.55);color:#c9fdf4;
+.quality-opt.active,.surface-opt.active{border-color:rgba(56,214,187,.55);color:#c9fdf4;
   background-color:rgba(24,86,82,.34);
   background-image:linear-gradient(152deg,rgba(56,214,187,.26),rgba(56,214,187,.05));
   box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 0 16px rgba(56,214,187,.14)}
@@ -1083,6 +1083,14 @@ body.adjust-mode #app > :not(#adjustFocus){
         <div class="quality-note" id="qualityInfo">2K 模式按实际绘制缓冲控制；手机仍限制像素比，避免掉帧和过热。</div>
       </div>
       <div class="set-row">
+        <div class="set-label">地表影像</div>
+        <div class="quality-switch">
+          <button class="surface-opt" type="button" data-surface="photo">卫星照片</button>
+          <button class="surface-opt" type="button" data-surface="relief">地形晕渲</button>
+        </div>
+        <div class="quality-note">卫星照片更接近真实影像；地形晕渲会强化山脉起伏，山脉更明显。</div>
+      </div>
+      <div class="set-row">
         <div class="set-label">滑动灵敏度 <b id="rotVal">0.50</b></div>
         <input type="range" id="rotSens" min="0.2" max="2" step="0.01" value="0.5" aria-label="滑动灵敏度">
       </div>
@@ -1121,7 +1129,7 @@ body.adjust-mode #app > :not(#adjustFocus){
 <script>
 /* 引导器：优先取同源打包文件；失败或超时自动切备用直链，避免卡在加载页 */
 (function(){
-  var SRC=['https://aka.doubaocdn.com/s/nNIKaVRUVh','./app.bundle.js?v=26'];
+  var SRC=['https://aka.doubaocdn.com/s/XvDFHeTgKC','./app.bundle.js?v=27'];
   var i=0,timer=null;
   window.__appStarted=function(){ if(timer){clearTimeout(timer);timer=null;} };
   function setSub(t,retry){
