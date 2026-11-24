@@ -898,6 +898,150 @@ body.adjust-mode #app > :not(#adjustFocus){
 .dp-photo-grid > :only-child{grid-column:1 / -1}
 .dp-photo-grid img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;
   border:1px solid rgba(140,200,220,.14);background:#0b151c;display:block}
+
+/* ============ 质感与动效润色层 ============ */
+:root{
+  --ease-spring:cubic-bezier(.22,1,.36,1);
+  --ease-soft:cubic-bezier(.4,0,.2,1);
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-l:env(safe-area-inset-left,0px);
+  --safe-r:env(safe-area-inset-right,0px);
+}
+html,body{-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+button,input{-webkit-tap-highlight-color:transparent}
+button{transition-property:transform,background-color,border-color,color,box-shadow}
+
+/* ---- 统一按压 / 悬停手感 ---- */
+.icon-btn,.layer-btn,.quality-opt,.surface-opt,.set-reset,.zoom-controls button,
+.dp-list-item,.kb-cat,.so-reset,.so-lock,.detail-close,.solar-play,.layer-toggle button,
+.sr-item,.kb-card,.so-head{transition-timing-function:var(--ease-spring)}
+.icon-btn:active,.quality-opt:active,.surface-opt:active,.set-reset:active,
+.zoom-controls button:active,.so-reset:active,.so-lock:active,.detail-close:active,
+.solar-play:active,.layer-toggle button:active{transform:scale(.94)}
+.layer-btn:active,.dp-list-item:active,.kb-cat:active,.sr-item:active{transform:scale(.968)}
+@media (hover:hover){
+  .icon-btn:hover:not(.active){transform:translateY(-1px)}
+  .layer-btn:not(.active):hover{transform:translateY(-1px)}
+  .kb-card:hover{transform:translateY(-2px)}
+}
+:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(56,214,187,.55),0 0 0 5px rgba(56,214,187,.14)}
+
+/* ---- 顶栏玻璃更细腻 ---- */
+.icon-btn{border-color:rgba(255,255,255,.12);background-color:rgba(12,24,38,.52);
+  background-image:linear-gradient(152deg,rgba(255,255,255,.10),rgba(255,255,255,.015));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 8px 20px rgba(0,0,0,.26)}
+.icon-btn:hover:not(.active){color:#eaf5ff;border-color:rgba(255,255,255,.26);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.26),0 12px 26px rgba(0,0,0,.32)}
+.icon-btn.active{border-color:rgba(56,214,187,.5);color:#e9fffb;
+  background-color:rgba(24,86,82,.42);
+  background-image:linear-gradient(152deg,rgba(56,214,187,.24),rgba(56,214,187,.05));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 0 18px rgba(56,214,187,.24)}
+.search input{background-image:linear-gradient(152deg,rgba(255,255,255,.05),rgba(255,255,255,0));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 6px 18px rgba(0,0,0,.22)}
+.search:focus-within input{border-color:rgba(56,214,187,.55);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 0 0 3px rgba(56,214,187,.12),0 10px 24px rgba(0,0,0,.3)}
+.search-results{animation:softIn .22s var(--ease-spring)}
+
+/* ---- 底部胶囊：层次与选中质感 ---- */
+.layer-btn:not(.active){background-image:linear-gradient(158deg,rgba(255,255,255,.075),rgba(255,255,255,.012));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 8px 18px rgba(0,0,0,.28)}
+.layer-btn:not(.active):hover{color:#eaf5ff;border-color:rgba(255,255,255,.26)}
+.layer-btn.active{border-color:rgba(88,238,212,.75);color:#03141b;
+  background-color:#38d6bb;
+  background-image:linear-gradient(152deg,#6cf0d8 0%,#3ad9bf 48%,#22bda6 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 8px 22px rgba(56,214,187,.34)}
+.layer-btn.active svg{opacity:.92}
+
+/* ---- 控制坞 / 读数 ---- */
+.zoom-controls button:hover{color:#f2fbff}
+.zoom-controls button:active{background:rgba(255,255,255,.16)}
+.coord-readout{letter-spacing:.01em}
+
+/* ---- 详情抽屉更"润" ---- */
+.detail-panel{border-radius:26px 26px 0 0}
+.detail-panel::after{content:"";position:absolute;left:0;right:0;top:0;height:110px;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(255,255,255,.055),rgba(255,255,255,0))}
+.detail-grab{width:44px;height:5px;background:rgba(255,255,255,.34);
+  box-shadow:0 1px 0 rgba(255,255,255,.26),0 2px 8px rgba(0,0,0,.3)}
+.dp-photo{border-radius:16px}
+.dp-cell,.dp-list-item{transition:border-color .26s var(--ease-soft),background-color .26s var(--ease-soft),
+  box-shadow .26s var(--ease-soft),transform .26s var(--ease-spring)}
+@media (hover:hover){.dp-cell:hover{border-color:rgba(56,214,187,.32);background-color:rgba(56,214,187,.07)}}
+.dp-title{letter-spacing:-.012em}
+.dp-kicker{letter-spacing:.22em;opacity:.92}
+.detail-body{padding-bottom:calc(24px + var(--safe-b))}
+
+/* ---- 设置弹层 ---- */
+.settings-card{scrollbar-gutter:stable}
+.settings-modal.open .settings-card{transform:translateY(0) scale(1)}
+.set-guide{border-radius:16px}
+.set-guide div{letter-spacing:.01em}
+.quality-opt,.surface-opt{font-weight:500;letter-spacing:.01em}
+@media (hover:hover){
+  .quality-opt:not(.active):hover,.surface-opt:not(.active):hover{
+    border-color:rgba(255,255,255,.24);color:#e6f2fb;background-color:rgba(255,255,255,.085)}
+}
+.quality-opt:active,.surface-opt:active,.set-reset:active{filter:brightness(1.06)}
+
+/* ---- 太阳直射点卡片 ---- */
+.sun-overview{border-color:rgba(255,255,255,.2)}
+.so-head{padding-bottom:2px}
+.so-title{letter-spacing:.01em}
+.so-dec-head{color:#ffd9a0;text-shadow:0 0 12px rgba(230,178,95,.35)}
+.so-reset:active,.so-lock:active{transform:scale(.9)}
+
+/* ---- 轻提示 ---- */
+#toast .toast-msg,#toast{--toast-glow:0 0 22px rgba(56,214,187,.16)}
+.toast-msg{letter-spacing:.01em}
+@keyframes softIn{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:none}}
+
+/* ---- 加载屏 ---- */
+.loader-bar{height:3px;box-shadow:0 0 18px rgba(56,214,187,.28)}
+.loader-bar i{background:linear-gradient(90deg,#25b7a0,#4fe3c8 55%,#d7fff7);
+  box-shadow:0 0 16px rgba(56,214,187,.55)}
+.loader-title{letter-spacing:.14em}
+.loader-ring{border-width:2px;box-shadow:0 0 30px rgba(56,214,187,.18),inset 0 0 18px rgba(56,214,187,.12)}
+
+/* ---- 滑条拇指 ---- */
+.settings-card input[type=range]::-webkit-slider-thumb{
+  box-shadow:0 0 0 1px rgba(56,214,187,.65),0 4px 14px rgba(0,0,0,.42),0 0 18px rgba(56,214,187,.4)}
+
+/* ---- 安全区 ---- */
+.bottom-dock{bottom:calc(12px + var(--safe-b))}
+.layer-panel{bottom:calc(var(--dock-h) + 14px + var(--safe-b))}
+.coord-readout{bottom:calc(14px + var(--safe-b))}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important}
+}
+
+/* ---- 分段选择器：合并成一条"轨道" ---- */
+.quality-switch{gap:4px;padding:4px;border-radius:14px;border:1px solid rgba(255,255,255,.10);
+  background-color:rgba(255,255,255,.035);background-image:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,0));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),inset 0 -1px 0 rgba(0,0,0,.24)}
+.quality-opt,.surface-opt{height:38px;border-radius:10px;border-color:transparent;
+  background-color:transparent;background-image:none;box-shadow:none}
+.quality-opt:not(.active),.surface-opt:not(.active){color:#93a8bc}
+.quality-opt.active,.surface-opt.active{color:#eafffb;border-color:rgba(88,238,212,.5);
+  background-color:rgba(30,110,101,.42);
+  background-image:linear-gradient(152deg,rgba(84,238,212,.34),rgba(56,214,187,.08));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.32),0 6px 16px rgba(0,0,0,.26),0 0 16px rgba(56,214,187,.14)}
+
+/* ---- 底部胶囊滚动：两端柔化，避免被硬切 ---- */
+.layer-panel{
+  padding-right:18px;
+  -webkit-mask-image:linear-gradient(to right,#000 0,#000 92%,rgba(0,0,0,.5) 99%,rgba(0,0,0,0) 100%);
+  mask-image:linear-gradient(to right,#000 0,#000 92%,rgba(0,0,0,.5) 99%,rgba(0,0,0,0) 100%)}
+
+/* ---- 手机上详情抽屉：压住底图，保证文字干净 ---- */
+@media (max-width:767px){
+  .detail-panel{background-color:rgba(8,16,28,.94);
+    background-image:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,0) 42%)}
+}
+
+/* ---- 设置卡片：提高不透明度，压住背后的地名字幕 ---- */
+.settings-card{background-color:rgba(11,22,36,.9)}
 </style>
 </head>
 <body>
@@ -922,7 +1066,7 @@ body.adjust-mode #app > :not(#adjustFocus){
     </div>
     <div class="search interactive" id="searchBox">
       <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input id="searchInput" type="text" placeholder="搜索建筑、洋流、城市…" autocomplete="off">
+      <input id="searchInput" type="text" placeholder="搜索建筑 / 山脉" autocomplete="off">
       <button class="clear" id="searchClear" aria-label="清空">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
@@ -1129,7 +1273,7 @@ body.adjust-mode #app > :not(#adjustFocus){
 <script>
 /* 引导器：优先取同源打包文件；失败或超时自动切备用直链，避免卡在加载页 */
 (function(){
-  var SRC=['https://aka.doubaocdn.com/s/XvDFHeTgKC','./app.bundle.js?v=27'];
+  var SRC=['https://aka.doubaocdn.com/s/XvDFHeTgKC','./app.bundle.js?v=28'];
   var i=0,timer=null;
   window.__appStarted=function(){ if(timer){clearTimeout(timer);timer=null;} };
   function setSub(t,retry){
