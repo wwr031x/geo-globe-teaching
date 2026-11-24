@@ -1042,6 +1042,12 @@ button{transition-property:transform,background-color,border-color,color,box-sha
 
 /* ---- 设置卡片：提高不透明度，压住背后的地名字幕 ---- */
 .settings-card{background-color:rgba(11,22,36,.9)}
+
+/* ---- 手机竖屏：概况图让开底部胶囊行，不遮挡第四个图层 ---- */
+@media (max-width:767px) and (orientation:portrait){
+  .sun-overview.show:not(.placed){bottom:calc(var(--dock-h) + 74px + var(--safe-b))}
+  .layer-panel{z-index:21}
+}
 </style>
 </head>
 <body>
